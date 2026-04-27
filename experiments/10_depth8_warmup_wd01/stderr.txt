@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 619, in <module>
+    loss = model(x, y)
+           ^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 311, in forward
+    loss = F.cross_entropy(logits.view(-1, logits.size(-1)), targets.view(-1),
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/functional.py", line 3494, in cross_entropy
+    return torch._C._nn.cross_entropy_loss(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: MPS backend out of memory (MPS allocated: 21.28 GB, other allocations: 1.00 GB, max allowed: 22.64 GB). Tried to allocate 512.00 MB on private pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).

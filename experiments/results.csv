@@ -1,0 +1,37 @@
+experiment_idx,name,description,overrides,status,val_bpb,num_params_M,num_steps,total_tokens_M,training_seconds,wall_time,timestamp
+0,baseline_rerun,Baseline rerun for reproducibility check,{},OK,1.951289,7.3,133.0,8.7,301.6,550.6071009635925,2026-03-24T08:49:45.059297
+1,depth_8,"Double depth: 4 -> 8 layers, ~14.6M params","{""DEPTH"": 8}",TIMEOUT,,,,,,900,
+2,depth_12,"Triple depth: 4 -> 12 layers, ~22M params","{""DEPTH"": 12}",FAILED,,,,,,18.39089608192444,
+3,wider_96,Wider model: aspect_ratio 64 -> 96,"{""ASPECT_RATIO"": 96}",OK,1.955441,13.4,84.0,5.5,322.7,688.3464670181274,2026-03-24T09:16:32.447483
+4,depth8_wider96,"Deeper + wider: depth=8, aspect_ratio=96","{""DEPTH"": 8, ""ASPECT_RATIO"": 96}",FAILED,,,,,,32.2022180557251,
+5,sliding_window_SSSL,Sliding window pattern SSSL (3 short + 1 long),"{""DEPTH"": 8, ""WINDOW_PATTERN"": ""\""SSSL\""""}",TIMEOUT,,,,,,900,
+6,higher_matrix_lr,Higher Muon LR: 0.04 -> 0.06,"{""MATRIX_LR"": 0.06}",OK,1.944196,7.3,133.0,8.7,302.1,559.2239062786102,2026-03-24T09:41:34.458309
+7,lower_matrix_lr,Lower Muon LR: 0.04 -> 0.02,"{""MATRIX_LR"": 0.02}",OK,1.935718,7.3,148.0,9.7,300.2,527.9630351066589,2026-03-24T09:50:22.464445
+8,warmup_5pct,Add 5% warmup ratio,"{""WARMUP_RATIO"": 0.05}",OK,1.942914,7.3,149.0,9.8,302.1,528.2362852096558,2026-03-24T09:59:10.759388
+9,batch_128k,Larger batch: 64K -> 128K tokens,"{""TOTAL_BATCH_SIZE"": ""2**17""}",OK,1.96381,7.3,77.0,10.1,300.1,566.7398200035095,2026-03-24T10:08:37.554991
+10,depth8_warmup_wd01,Depth 8 + warmup + lower weight decay,"{""DEPTH"": 8, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",FAILED,,,,,,20.642827033996582,
+11,best_combo_v1,Placeholder: combine best findings from above (updated after analysis),"{""DEPTH"": 8, ""ASPECT_RATIO"": 96, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",FAILED,,,,,,17.894339084625244,
+0,r2_depth8_smallbatch,Depth 8 with batch_size=8 to fit in memory,"{""DEPTH"": 8, ""DEVICE_BATCH_SIZE"": 8}",TIMEOUT,,,,,,900,
+1,r2_depth8_lowlr,Depth 8 + lower Muon LR (round 1 winner combo),"{""DEPTH"": 8, ""DEVICE_BATCH_SIZE"": 8, ""MATRIX_LR"": 0.02}",TIMEOUT,,,,,,900,
+2,r2_depth8_lowlr_warmup,Depth 8 + lower LR + warmup,"{""DEPTH"": 8, ""DEVICE_BATCH_SIZE"": 8, ""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05}",TIMEOUT,,,,,,900,
+3,r2_depth6_lowlr,Depth 6 (middle ground) + lower LR,"{""DEPTH"": 6, ""MATRIX_LR"": 0.02}",TIMEOUT,,,,,,900,
+4,r2_depth6_lowlr_warmup,Depth 6 + lower LR + warmup,"{""DEPTH"": 6, ""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05}",TIMEOUT,,,,,,900,
+5,r2_lowlr_warmup,"Lower LR + warmup (depth 4, combine two round 1 winners)","{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05}",OK,1.961953,7.3,144.0,9.4,301.8,554.318913936615,2026-03-24T12:39:08.593116
+6,r2_lowlr_warmup_wd01,Lower LR + warmup + lower weight decay,"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",OK,1.932465,7.3,153.0,10.0,301.1,525.1324377059937,2026-03-24T12:47:53.759169
+7,r2_matrix_lr_015,Even lower Muon LR: 0.015,"{""MATRIX_LR"": 0.015}",OK,1.947405,7.3,151.0,9.9,301.3,524.6781649589539,2026-03-24T12:56:38.469219
+8,r2_matrix_lr_01,Very low Muon LR: 0.01,"{""MATRIX_LR"": 0.01}",OK,1.964708,7.3,152.0,10.0,300.8,535.9084558486938,2026-03-24T13:05:34.441759
+9,r2_depth8_sssl_smallbatch,Depth 8 + SSSL window + small batch,"{""DEPTH"": 8, ""DEVICE_BATCH_SIZE"": 8, ""WINDOW_PATTERN"": ""\""SSSL\"""", ""MATRIX_LR"": 0.02}",TIMEOUT,,,,,,900,
+10,r2_warmdown_70pct,Longer warmdown: 50% -> 70%,"{""MATRIX_LR"": 0.02, ""WARMDOWN_RATIO"": 0.7}",OK,1.943322,7.3,141.0,9.2,300.8,544.9260311126709,2026-03-24T13:29:39.574712
+11,r2_embedding_lr_03,Lower embedding LR: 0.6 -> 0.3,"{""MATRIX_LR"": 0.02, ""EMBEDDING_LR"": 0.3}",OK,1.9717,7.3,138.0,9.0,300.5,547.8638608455658,2026-03-24T13:38:47.504255
+0,r3_depth6_lowlr,Depth 6 + lower LR (re-run with longer timeout),"{""DEPTH"": 6, ""MATRIX_LR"": 0.02}",OK,2.060666,18.5,15.0,1.0,329.1,1862.6940732002258,2026-03-24T14:32:36.163836
+1,r3_depth6_best_combo,Depth 6 + full winning combo from round 2,"{""DEPTH"": 6, ""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",OK,2.181933,18.5,16.0,1.0,396.9,1372.5715489387512,2026-03-24T14:55:28.795939
+2,r3_depth8_smallbatch,Depth 8 + batch_size=8 (re-run with longer timeout),"{""DEPTH"": 8, ""DEVICE_BATCH_SIZE"": 8}",OK,1.97959,37.7,43.0,2.8,304.6,1089.6503360271454,2026-03-24T15:13:38.514623
+3,r3_depth8_best_combo,Depth 8 + full winning combo + small batch,"{""DEPTH"": 8, ""DEVICE_BATCH_SIZE"": 8, ""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",OK,2.02033,37.7,40.0,2.6,302.6,1093.3582153320312,2026-03-24T15:31:51.932227
+4,r3_wd005,Weight decay 0.05 (lower than winner's 0.1),"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.05}",OK,1.963148,7.3,144.0,9.4,301.1,579.3988196849823,2026-03-24T15:41:31.381451
+5,r3_wd015,Weight decay 0.15 (between winner's 0.1 and default 0.2),"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.15}",OK,1.96703,7.3,138.0,9.0,301.0,531.2302529811859,2026-03-24T15:50:22.650332
+6,r3_warmup_3pct,Warmup 3% instead of 5%,"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.03, ""WEIGHT_DECAY"": 0.1}",OK,1.958347,7.3,149.0,9.8,302.2,535.9288589954376,2026-03-24T15:59:18.619348
+7,r3_warmup_10pct,Warmup 10% instead of 5%,"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.1, ""WEIGHT_DECAY"": 0.1}",OK,1.972452,7.3,132.0,8.7,301.5,577.7955868244171,2026-03-24T16:08:56.477972
+8,r3_lr_025,Muon LR 0.025 (between 0.02 winner and 0.04 default),"{""MATRIX_LR"": 0.025, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",OK,1.950751,7.3,145.0,9.5,300.0,534.7729196548462,2026-03-24T16:17:51.289636
+9,r3_warmdown_70_combo,Winner combo + longer warmdown 70%,"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1, ""WARMDOWN_RATIO"": 0.7}",OK,1.983007,7.3,127.0,8.3,301.2,561.2669408321381,2026-03-24T16:27:12.603043
+10,r3_final_lr_01,Winner combo + final LR 10% instead of 0%,"{""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1, ""FINAL_LR_FRAC"": 0.1}",OK,1.972421,7.3,133.0,8.7,301.7,551.8736062049866,2026-03-24T16:36:24.812633
+11,r3_depth5_best,Depth 5 + winning combo (between 4 and 6),"{""DEPTH"": 5, ""MATRIX_LR"": 0.02, ""WARMUP_RATIO"": 0.05, ""WEIGHT_DECAY"": 0.1}",OK,2.036288,16.7,42.0,2.8,304.3,786.6805486679077,2026-03-24T16:49:31.567081

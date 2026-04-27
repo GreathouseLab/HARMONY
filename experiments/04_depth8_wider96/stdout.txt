@@ -1,0 +1,15 @@
+Environment verified: macOS detected with Metal (MPS) hardware acceleration available.
+
+Vocab size: 4,096
+Model config: {'sequence_len': 2048, 'vocab_size': 4096, 'n_layer': 8, 'n_head': 6, 'n_kv_head': 6, 'n_embd': 768, 'window_pattern': 'L'}
+Parameter counts:
+  wte                     : 3,145,728
+  value_embeds            : 12,582,912
+  lm_head                 : 3,145,728
+  transformer_matrices    : 56,623,872
+  scalars                 : 16
+  total                   : 75,498,256
+Estimated FLOPs per token: 5.096125e+08
+Scaling AdamW LRs by 1/sqrt(768/768) = 1.000000
+Time budget: 300s
+Gradient accumulation steps: 2

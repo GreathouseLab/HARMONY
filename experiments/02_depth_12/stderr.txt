@@ -1,0 +1,32 @@
+Traceback (most recent call last):
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 619, in <module>
+    loss = model(x, y)
+           ^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 302, in forward
+    x = block(x, ve, cos_sin, self.window_sizes[i])
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 142, in forward
+    x = x + self.attn(norm(x), ve, cos_sin, window_size)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/module.py", line 1750, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 115, in forward
+    y = F.scaled_dot_product_attention(q, k, v, is_causal=True)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: MPS backend out of memory (MPS allocated: 20.24 GB, other allocations: 1.50 GB, max allowed: 22.64 GB). Tried to allocate 1.50 GB on private pool. Use PYTORCH_MPS_HIGH_WATERMARK_RATIO=0.0 to disable upper limit for memory allocations (may cause system failure).
