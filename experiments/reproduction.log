@@ -1,0 +1,68 @@
+
+========================================================================
+REPRODUCING: baseline_rerun
+  overrides: {}
+  original val_bpb: 1.951289
+========================================================================
+
+
+  reproduced val_bpb: 1.935228
+  diff vs original:   -0.016061000000000103
+  within ±0.005: False
+  checkpoint exists:  True (/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_baseline_rerun/checkpoint.pt)
+  wall time:          542s
+
+========================================================================
+REPRODUCING: lower_matrix_lr
+  overrides: {'MATRIX_LR': 0.02}
+  original val_bpb: 1.935718
+========================================================================
+
+
+  reproduced val_bpb: 1.933531
+  diff vs original:   -0.002186999999999939
+  within ±0.005: True
+  checkpoint exists:  True (/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_lower_matrix_lr/checkpoint.pt)
+  wall time:          536s
+
+========================================================================
+REPRODUCING: r2_lowlr_warmup_wd01
+  overrides: {'MATRIX_LR': 0.02, 'WARMUP_RATIO': 0.05, 'WEIGHT_DECAY': 0.1}
+  original val_bpb: 1.932465
+========================================================================
+
+
+  reproduced val_bpb: 1.938688
+  diff vs original:   0.0062229999999998675
+  within ±0.005: False
+  checkpoint exists:  True (/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_r2_lowlr_warmup_wd01/checkpoint.pt)
+  wall time:          523s
+
+========================================================================
+REPRODUCING: r3_lr_025
+  overrides: {'MATRIX_LR': 0.025, 'WARMUP_RATIO': 0.05, 'WEIGHT_DECAY': 0.1}
+  original val_bpb: 1.950751
+========================================================================
+
+
+  reproduced val_bpb: 1.957877
+  diff vs original:   0.007126000000000188
+  within ±0.005: False
+  checkpoint exists:  True (/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_r3_lr_025/checkpoint.pt)
+  wall time:          533s
+
+========================================================================
+REPRODUCTION SUMMARY
+========================================================================
+name                           orig      repro       diff   within   ckpt
+baseline_rerun             1.951289   1.935228  -0.016061    False   True
+lower_matrix_lr            1.935718   1.933531  -0.002187     True   True
+r2_lowlr_warmup_wd01       1.932465   1.938688  +0.006223    False   True
+r3_lr_025                  1.950751   1.957877  +0.007126    False   True
+
+Saved full summary to /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/reproduction_summary.json
+
+WARNING: 3 run(s) produced val_bpb outside ±0.005:
+  - baseline_rerun: orig=1.951289 repro=1.935228 diff=-0.016061
+  - r2_lowlr_warmup_wd01: orig=1.932465 repro=1.938688 diff=+0.006223
+  - r3_lr_025: orig=1.950751 repro=1.957877 diff=+0.007126

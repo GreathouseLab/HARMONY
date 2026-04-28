@@ -1,0 +1,39 @@
+Device: mps
+Sampling 1000 reads from /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/output/val.txt…
+  done in 1.5s; mean read length = 99.1 bp
+
+Loading baseline_rerun from /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_baseline_rerun/checkpoint.pt…
+  loaded in 0.5s; n_embd=256, depth=4
+  NOTE: checkpoint reports val_bpb=1.935228 (vs declared 1.951289)
+  embedding 1000 clean reads…
+    done in 11.2s
+  err= 0.5%  cos_mean=0.9985  median=1.0000  std=0.0029  n=1000  (9.7s)
+  err= 1.0%  cos_mean=0.9969  median=0.9986  std=0.0045  n=1000  (9.5s)
+  err= 5.0%  cos_mean=0.9876  median=0.9895  std=0.0081  n=1000  (9.8s)
+
+Loading lower_matrix_lr from /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_lower_matrix_lr/checkpoint.pt…
+  loaded in 0.1s; n_embd=256, depth=4
+  embedding 1000 clean reads…
+    done in 9.9s
+  err= 0.5%  cos_mean=0.9956  median=1.0000  std=0.0160  n=1000  (9.2s)
+  err= 1.0%  cos_mean=0.9895  median=0.9984  std=0.0335  n=1000  (9.3s)
+  err= 5.0%  cos_mean=0.9638  median=0.9829  std=0.0575  n=1000  (9.6s)
+
+Loading r2_lowlr_warmup_wd01 from /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_r2_lowlr_warmup_wd01/checkpoint.pt…
+  loaded in 0.0s; n_embd=256, depth=4
+  embedding 1000 clean reads…
+    done in 9.7s
+  err= 0.5%  cos_mean=0.9967  median=1.0000  std=0.0097  n=1000  (9.5s)
+  err= 1.0%  cos_mean=0.9931  median=0.9983  std=0.0152  n=1000  (9.5s)
+  err= 5.0%  cos_mean=0.9736  median=0.9826  std=0.0276  n=1000  (9.5s)
+
+Loading r3_lr_025 from /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_r3_lr_025/checkpoint.pt…
+  loaded in 0.0s; n_embd=256, depth=4
+  embedding 1000 clean reads…
+    done in 9.4s
+  err= 0.5%  cos_mean=0.9976  median=1.0000  std=0.0054  n=1000  (9.5s)
+  err= 1.0%  cos_mean=0.9949  median=0.9981  std=0.0094  n=1000  (9.6s)
+  err= 5.0%  cos_mean=0.9798  median=0.9837  std=0.0163  n=1000  (9.6s)
+
+Saved /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/probe_noise_robustness.csv
+Saved /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/probe4_summary.md

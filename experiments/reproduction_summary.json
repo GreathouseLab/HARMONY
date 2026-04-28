@@ -1,0 +1,68 @@
+[
+  {
+    "name": "baseline_rerun",
+    "overrides": {},
+    "original_val_bpb": 1.951289,
+    "repro_val_bpb": 1.935228,
+    "diff": -0.016061000000000103,
+    "within_tolerance": false,
+    "checkpoint_path": "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_baseline_rerun/checkpoint.pt",
+    "checkpoint_exists": true,
+    "wall_seconds": 542.3628859519958,
+    "early_killed": false,
+    "timed_out": false,
+    "returncode": 0
+  },
+  {
+    "name": "lower_matrix_lr",
+    "overrides": {
+      "MATRIX_LR": 0.02
+    },
+    "original_val_bpb": 1.935718,
+    "repro_val_bpb": 1.933531,
+    "diff": -0.002186999999999939,
+    "within_tolerance": true,
+    "checkpoint_path": "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_lower_matrix_lr/checkpoint.pt",
+    "checkpoint_exists": true,
+    "wall_seconds": 535.8744652271271,
+    "early_killed": false,
+    "timed_out": false,
+    "returncode": 0
+  },
+  {
+    "name": "r2_lowlr_warmup_wd01",
+    "overrides": {
+      "MATRIX_LR": 0.02,
+      "WARMUP_RATIO": 0.05,
+      "WEIGHT_DECAY": 0.1
+    },
+    "original_val_bpb": 1.932465,
+    "repro_val_bpb": 1.938688,
+    "diff": 0.0062229999999998675,
+    "within_tolerance": false,
+    "checkpoint_path": "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_r2_lowlr_warmup_wd01/checkpoint.pt",
+    "checkpoint_exists": true,
+    "wall_seconds": 523.4391379356384,
+    "early_killed": false,
+    "timed_out": false,
+    "returncode": 0
+  },
+  {
+    "name": "r3_lr_025",
+    "overrides": {
+      "MATRIX_LR": 0.025,
+      "WARMUP_RATIO": 0.05,
+      "WEIGHT_DECAY": 0.1
+    },
+    "original_val_bpb": 1.950751,
+    "repro_val_bpb": 1.957877,
+    "diff": 0.007126000000000188,
+    "within_tolerance": false,
+    "checkpoint_path": "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/repro_r3_lr_025/checkpoint.pt",
+    "checkpoint_exists": true,
+    "wall_seconds": 532.5587618350983,
+    "early_killed": false,
+    "timed_out": false,
+    "returncode": 0
+  }
+]

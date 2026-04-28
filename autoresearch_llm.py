@@ -215,6 +215,7 @@ def run_experiment(name, description, overrides, experiment_idx):
     shutil.copy2(TRAIN_PY, exp_dir / "train.py")
     stdout_path = exp_dir / "stdout.txt"
     stderr_path = exp_dir / "stderr.txt"
+    checkpoint_path = exp_dir / "checkpoint.pt"
 
     base_record = {
         "experiment_idx": experiment_idx,
@@ -223,6 +224,10 @@ def run_experiment(name, description, overrides, experiment_idx):
         "overrides": json.dumps(overrides),
     }
 
+    # Subprocess env: inherit, plus point train.py's optional save block at the exp dir.
+    sub_env = os.environ.copy()
+    sub_env["HARMONY_CHECKPOINT_PATH"] = str(checkpoint_path)
+
     proc = subprocess.Popen(
         [PYTHON, str(TRAIN_PY)],
         cwd=str(PROJECT_DIR),
@@ -230,6 +235,7 @@ def run_experiment(name, description, overrides, experiment_idx):
         stderr=subprocess.STDOUT,  # merged so we can stream a single source
         text=True,
         bufsize=1,
+        env=sub_env,
     )
 
     dt_values = []
