@@ -57,6 +57,16 @@ DEFAULT_MAX_API_COST_USD = 100.00
 DEFAULT_MAX_WALL_HOURS = 24
 SUBPROCESS_TIMEOUT = 2400  # 40 min per experiment
 
+# Fast-fail: skip JIT/compilation noise, then kill if the next few steps are too slow.
+# A doomed depth-8 run otherwise burns the full SUBPROCESS_TIMEOUT before we know.
+FAST_FAIL_WARMUP_STEPS = 3        # ignore these step dts (JIT compile)
+FAST_FAIL_CHECK_STEPS = 3         # average dt over this many subsequent steps
+FAST_FAIL_DT_MS_THRESHOLD = 8000  # kill if avg dt > 8s — too slow to converge in 5min budget
+
+# Pattern matches the train.py step log line, e.g.
+#   "step 00012 (1.7%) | loss: 8.31 | lrm: 0.33 | dt: 6509ms | tok/sec: ..."
+STEP_DT_RE = re.compile(r"step\s+\d+.*?\bdt:\s*(\d+)ms")
+
 # Claude Sonnet 4.6 — best cost/capability balance for experiment reasoning
 CLAUDE_MODEL = "claude-sonnet-4-6"
 
@@ -178,6 +188,8 @@ def parse_results(output):
         "val_bpb": r"val_bpb:\s+([\d.]+)",
         "training_seconds": r"training_seconds:\s+([\d.]+)",
         "total_seconds": r"total_seconds:\s+([\d.]+)",
+        "peak_vram_mb": r"peak_vram_mb:\s+([\d.]+)",
+        "mfu_percent": r"mfu_percent:\s+([\d.]+)",
         "total_tokens_M": r"total_tokens_M:\s+([\d.]+)",
         "num_steps": r"num_steps:\s+(\d+)",
         "num_params_M": r"num_params_M:\s+([\d.]+)",
@@ -201,84 +213,172 @@ def run_experiment(name, description, overrides, experiment_idx):
     exp_dir = EXPERIMENTS_DIR / f"{experiment_idx:02d}_{name}"
     exp_dir.mkdir(parents=True, exist_ok=True)
     shutil.copy2(TRAIN_PY, exp_dir / "train.py")
+    stdout_path = exp_dir / "stdout.txt"
+    stderr_path = exp_dir / "stderr.txt"
+
+    base_record = {
+        "experiment_idx": experiment_idx,
+        "name": name,
+        "description": description,
+        "overrides": json.dumps(overrides),
+    }
+
+    proc = subprocess.Popen(
+        [PYTHON, str(TRAIN_PY)],
+        cwd=str(PROJECT_DIR),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,  # merged so we can stream a single source
+        text=True,
+        bufsize=1,
+    )
+
+    dt_values = []
+    early_kill_reason = None
+    timed_out = False
+    output_buf = []
+    t0 = time.time()
 
     try:
-        t0 = time.time()
-        result = subprocess.run(
-            [PYTHON, str(TRAIN_PY)],
-            cwd=str(PROJECT_DIR),
-            capture_output=True,
-            text=True,
-            timeout=SUBPROCESS_TIMEOUT,
-        )
-        wall_time = time.time() - t0
+        with open(stdout_path, "w") as f_out:
+            for line in proc.stdout:
+                f_out.write(line)
+                f_out.flush()
+                output_buf.append(line)
 
-        (exp_dir / "stdout.txt").write_text(result.stdout)
-        (exp_dir / "stderr.txt").write_text(result.stderr)
+                m = STEP_DT_RE.search(line)
+                if m:
+                    dt_values.append(int(m.group(1)))
+                    needed = FAST_FAIL_WARMUP_STEPS + FAST_FAIL_CHECK_STEPS
+                    if len(dt_values) == needed:
+                        check = dt_values[FAST_FAIL_WARMUP_STEPS:needed]
+                        avg = sum(check) / len(check)
+                        if avg > FAST_FAIL_DT_MS_THRESHOLD:
+                            early_kill_reason = (
+                                f"avg dt over post-warmup steps "
+                                f"{FAST_FAIL_WARMUP_STEPS}..{needed - 1} "
+                                f"= {avg:.0f}ms > {FAST_FAIL_DT_MS_THRESHOLD}ms threshold "
+                                f"(samples: {check})"
+                            )
+                            print(f"\n  EARLY KILL: {early_kill_reason}")
+                            proc.kill()
+                            break
 
-        if result.returncode != 0:
-            error_msg = result.stderr[-300:] if result.stderr else "unknown error"
-            print(f"  FAILED (exit code {result.returncode})")
-            return {
-                "experiment_idx": experiment_idx,
-                "name": name,
-                "description": description,
-                "overrides": json.dumps(overrides),
-                "status": "FAILED",
-                "error": error_msg,
-                "val_bpb": None,
-                "wall_time": wall_time,
-                "timestamp": datetime.now().isoformat(),
-            }
+                if time.time() - t0 > SUBPROCESS_TIMEOUT:
+                    timed_out = True
+                    print(f"\n  TIMEOUT (>{SUBPROCESS_TIMEOUT}s) — killing")
+                    proc.kill()
+                    break
 
-        metrics = parse_results(result.stdout)
-        val_bpb = metrics.get("val_bpb")
-        print(f"  val_bpb: {val_bpb}")
-        print(f"  params:  {metrics.get('num_params_M', '?')}M")
-        print(f"  steps:   {metrics.get('num_steps', '?')}")
-        print(f"  wall:    {wall_time:.0f}s")
+            # Drain anything left and reap the process
+            try:
+                tail, _ = proc.communicate(timeout=60)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+                tail, _ = proc.communicate()
+            if tail:
+                f_out.write(tail)
+                output_buf.append(tail)
+    finally:
+        restore_train_py(original)
 
+    # We merged stderr into stdout; keep stderr.txt for backward compat
+    stderr_path.write_text("")
+    wall_time = time.time() - t0
+    full_output = "".join(output_buf)
+
+    if early_kill_reason:
+        print(f"  EARLY_KILL ({wall_time:.0f}s)")
         return {
-            "experiment_idx": experiment_idx,
-            "name": name,
-            "description": description,
-            "overrides": json.dumps(overrides),
-            "status": "OK",
-            "val_bpb": val_bpb,
-            "num_params_M": metrics.get("num_params_M"),
-            "num_steps": metrics.get("num_steps"),
-            "total_tokens_M": metrics.get("total_tokens_M"),
-            "training_seconds": metrics.get("training_seconds"),
+            **base_record,
+            "status": "EARLY_KILL",
+            "error": early_kill_reason,
+            "val_bpb": None,
             "wall_time": wall_time,
             "timestamp": datetime.now().isoformat(),
         }
 
-    except subprocess.TimeoutExpired:
-        print(f"  TIMEOUT (>{SUBPROCESS_TIMEOUT}s)")
+    if timed_out:
         return {
-            "experiment_idx": experiment_idx,
-            "name": name,
-            "description": description,
-            "overrides": json.dumps(overrides),
+            **base_record,
             "status": "TIMEOUT",
             "val_bpb": None,
-            "wall_time": SUBPROCESS_TIMEOUT,
+            "wall_time": wall_time,
             "timestamp": datetime.now().isoformat(),
         }
-    finally:
-        restore_train_py(original)
+
+    if proc.returncode != 0:
+        error_msg = full_output[-300:] if full_output else "unknown error"
+        print(f"  FAILED (exit code {proc.returncode})")
+        return {
+            **base_record,
+            "status": "FAILED",
+            "error": error_msg,
+            "val_bpb": None,
+            "wall_time": wall_time,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    metrics = parse_results(full_output)
+    val_bpb = metrics.get("val_bpb")
+    print(f"  val_bpb:      {val_bpb}")
+    print(f"  params:       {metrics.get('num_params_M', '?')}M")
+    print(f"  steps:        {metrics.get('num_steps', '?')}")
+    print(f"  peak_vram_mb: {metrics.get('peak_vram_mb', '?')}")
+    print(f"  wall:         {wall_time:.0f}s")
+
+    return {
+        **base_record,
+        "status": "OK",
+        "val_bpb": val_bpb,
+        "num_params_M": metrics.get("num_params_M"),
+        "num_steps": metrics.get("num_steps"),
+        "total_tokens_M": metrics.get("total_tokens_M"),
+        "training_seconds": metrics.get("training_seconds"),
+        "peak_vram_mb": metrics.get("peak_vram_mb"),
+        "mfu_percent": metrics.get("mfu_percent"),
+        "wall_time": wall_time,
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
+CSV_FIELDS = [
+    "experiment_idx", "name", "description", "overrides", "status",
+    "val_bpb", "num_params_M", "num_steps", "total_tokens_M",
+    "training_seconds", "peak_vram_mb", "mfu_percent",
+    "wall_time", "timestamp", "error",
+]
+
+
+def migrate_results_csv():
+    """Idempotently expand results.csv to the current CSV_FIELDS schema.
+
+    Older rows simply get empty values for new columns. Safe to call on every startup.
+    """
+    if not RESULTS_CSV.exists():
+        return
+    with open(RESULTS_CSV, "r", newline="") as f:
+        reader = csv.DictReader(f)
+        existing = list(reader.fieldnames or [])
+        rows = list(reader)
+    additions = [c for c in CSV_FIELDS if c not in existing]
+    if not additions:
+        return
+    new_fields = existing + additions
+    with open(RESULTS_CSV, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=new_fields)
+        writer.writeheader()
+        for row in rows:
+            for col in additions:
+                row.setdefault(col, "")
+            writer.writerow(row)
+    print(f"[csv] migrated results.csv: added columns {additions}")
 
 
 def save_result(result):
     EXPERIMENTS_DIR.mkdir(parents=True, exist_ok=True)
-    fieldnames = [
-        "experiment_idx", "name", "description", "overrides", "status",
-        "val_bpb", "num_params_M", "num_steps", "total_tokens_M",
-        "training_seconds", "wall_time", "timestamp",
-    ]
     write_header = not RESULTS_CSV.exists()
     with open(RESULTS_CSV, "a", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=CSV_FIELDS, extrasaction="ignore")
         if write_header:
             writer.writeheader()
         writer.writerow(result)
@@ -344,20 +444,25 @@ def build_results_summary(results):
     ok_results.sort(key=lambda r: float(r["val_bpb"]))
 
     for r in ok_results:
+        vram = r.get("peak_vram_mb") or "?"
         lines.append(
             f"  {r['name']}: val_bpb={r['val_bpb']} | "
             f"params={r.get('num_params_M', '?')}M | "
             f"steps={r.get('num_steps', '?')} | "
+            f"vram_mb={vram} | "
             f"overrides={r.get('overrides', '{}')}"
         )
 
-    failed = [r for r in results if r.get("status") in ("FAILED", "TIMEOUT")]
+    failed = [r for r in results if r.get("status") in ("FAILED", "TIMEOUT", "EARLY_KILL")]
     if failed:
-        lines.append("\nFAILED/TIMED OUT experiments (avoid repeating these):")
+        lines.append("\nFAILED/TIMED OUT/EARLY-KILLED experiments (avoid repeating these):")
         for r in failed:
+            note = ""
+            if r.get("status") == "EARLY_KILL" and r.get("error"):
+                note = f" — {r['error']}"
             lines.append(
                 f"  {r['name']}: status={r['status']} | "
-                f"overrides={r.get('overrides', '{}')}"
+                f"overrides={r.get('overrides', '{}')}{note}"
             )
 
     lines.append(f"\nTotal experiments run: {len(results)}")
@@ -460,6 +565,9 @@ def main():
     # Backup train.py
     if not TRAIN_PY_BACKUP.exists():
         shutil.copy2(TRAIN_PY, TRAIN_PY_BACKUP)
+
+    # Bring results.csv up to the current schema (no-op if already migrated)
+    migrate_results_csv()
 
     # Load existing results
     results = load_all_results()
