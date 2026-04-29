@@ -1,86 +1,105 @@
-# autoresearch-macos
+# HARMONY
 
-![teaser](progress.png)
+Phase −1 feasibility study for HARMONY — a perception layer for microbiome data that turns raw sequencing reads into bias-corrected representations.
 
-*One day, frontier AI research used to be done by meat computers in between eating, sleeping, having other fun, and synchronizing once in a while using sound wave interconnect in the ritual of "group meeting". That era is long gone. Research is now entirely the domain of autonomous swarms of AI agents running across compute cluster megastructures in the skies. The agents claim that we are now in the 10,205th generation of the code base, in any case no one could tell if that's right or wrong as the "code" is now a self-modifying binary that has grown beyond human comprehension. This repo is the story of how it all began. -@karpathy, March 2026*.
+## What this repo is
 
-The idea: give an AI agent a small but real LLM training setup and let it experiment autonomously overnight. It modifies the code, trains for 5 minutes, checks if the result improved, keeps or discards, and repeats. You wake up in the morning to a log of experiments and (hopefully) a better model. The training code here is a simplified single-GPU implementation of [nanochat](https://github.com/karpathy/nanochat). The core idea is that you're not touching any of the Python files like you normally would as a researcher. Instead, you are programming the `program.md` Markdown files that provide context to the AI agents and set up your autonomous research org. The default `program.md` in this repo is intentionally kept as a bare bones baseline, though it's obvious how one would iterate on it over time to find the "research org code" that achieves the fastest research progress, how you'd add more agents to the mix, etc. A bit more context on this project is here in this [tweet](https://x.com/karpathy/status/2029701092347630069).
+A causal-LM autoresearch loop, adapted for genomic FASTQ on macOS / MPS, used as the smallest experiment that can answer two questions about HARMONY before committing to Argonne A100 compute:
 
-## Open source project worth to look at
+1. Can language models learn meaningful patterns from raw microbiome reads at all?
+2. What is the empirical scaling slope (loss vs compute, à la Chinchilla)?
 
-Open source collabaration platform for agentic swarms in organizations and communityies. 
+The full architectural vision (dual-head read-error-correction + community-level bias-correction, k-mer tokenization, etc.) lives in [ARCHITECTURE_V2_REDESIGN.md](ARCHITECTURE_V2_REDESIGN.md). The current Phase −1 status, open questions, and probe gate spec live in [program.md](program.md). The unmodified upstream `program.md` is preserved as [program_OG.md](program_OG.md) for reference.
 
-[SentientWave Automata](https://github.com/sentientwave/automata)
+## Status (2026-04-29)
 
-## How it works
+- **38 R1–R3 hyperparameter experiments** completed via the LLM-driven loop; best val_bpb = 1.932465 (R2 winner).
+- **Probe 4 (synthetic noise robustness)** run on four representative checkpoints, reported in [experiments/probe4_summary.md](experiments/probe4_summary.md). Across-checkpoint cosine similarity at 1% noise is *anti-correlated* with val_bpb. Per the gate in program.md §6, this points toward an MLM + contrastive arm rather than further val_bpb optimization — but Probes 1/2/3 are still needed for full evaluation, and they are blocked on the val-split disposition decision (see below).
+- **Reproducibility caveat.** Re-running each of the four chosen R1–R3 configs under seed=42 produced val_bpb drift averaging 0.008 bpb, with the relative ranking changing substantially. MPS run-to-run variance is on the same order as the val_bpb improvements being claimed; absolute val_bpb deltas <0.02 between runs should not be treated as load-bearing.
+- **Paired-end leakage fix** committed 2026-04-29 (`prepare_fastq.py`). The previous file-level train/val split could place R1 in train and R2 in val for the same molecule. New split is at sample-stem level, and paired reads now emit as one molecule per `<READ_START>` block via `<r1_seq> <PAIRED_END> <reverse_complement(r2_seq)>`. **All 38 historical val_bpb numbers are inflated by the prior leak; R4-and-onward is the new baseline.** Historical numbers are preserved in `experiments/results.csv` for provenance.
 
-The repo is deliberately kept small and only really has a three files that matter:
+## Data pipeline
 
-- **`prepare.py`** — fixed constants, one-time data prep (downloads training data, trains a BPE tokenizer), and runtime utilities (dataloader, evaluation). Not modified.
-- **`train.py`** — the single file the agent edits. Contains the full GPT model, optimizer (Muon + AdamW), and training loop. Everything is fair game: architecture, hyperparameters, optimizer, batch size, etc. **This file is edited and iterated on by the agent**.
-- **`program.md`** — baseline instructions for one agent. Point your agent here and let it go. **This file is edited and iterated on by the human**.
-
-By design, training runs for a **fixed 5-minute time budget** (wall clock, excluding startup/compilation), regardless of the details of your compute. The metric is **val_bpb** (validation bits per byte) — lower is better, and vocab-size-independent so architectural changes are fairly compared.
+```
+  FASTQ (.fastq.gz)
+       │
+       ▼  prepare_fastq.py     paired-end aware; sample-stem split; <PAIRED_END> joining
+  output/{train,val}.txt
+       │
+       ▼  prepare_genomic.py   BPE tokenizer, dataloader, BPB evaluation
+  ~/.cache/autoresearch/
+       │
+       ▼  train.py             single-file GPT trainer (5-minute wall budget)
+  val_bpb + experiments/<run>/checkpoint.pt
+       │
+       ▼  evaluate_probes.py   frozen-checkpoint representation probes (Probe 4 only for now)
+  experiments/probe_*.csv, probe_*_summary.md
+```
 
 ## Quick start
 
-**Requirements:** Apple Silicon Mac (M1/M2/M3/M4 with Metal/MPS support) or a single NVIDIA GPU, Python 3.10+, [uv](https://docs.astral.sh/uv/).
+Apple Silicon / MPS or a single NVIDIA GPU; Python 3.10+; [uv](https://docs.astral.sh/uv/).
 
 ```bash
+uv sync                                                          # install runtime deps
+uv sync --group dev                                              # add pytest
 
-# 1. Install uv project manager (if you don't already have it)
-curl -LsSf https://astral.sh/uv/install.sh | sh
+uv run prepare_fastq.py --input-dir <fastq_dir> --output-dir output
+uv run prepare_genomic.py                                        # train BPE tokenizer
+uv run train.py                                                  # 5-minute run; saves checkpoint if HARMONY_CHECKPOINT_PATH set
 
-# 2. Install dependencies
-uv sync
-
-# 3. Download data and train tokenizer (one-time, ~2 min)
-uv run prepare.py
-
-# 4. Manually run a single training experiment (~5 min)
-uv run train.py
+uv run pytest tests/ -v                                          # unit tests
 ```
 
-If the above commands all work ok, your setup is working and you can go into autonomous research mode.
+## Autoresearch loop
 
-**Platforms support**. This fork officially supports **macOS (Apple Silicon / MPS)** and CPU environments, while preserving the original NVIDIA GPU support. It removes the hardcoded dependency on FlashAttention-3, falling back to PyTorch's native Scaled Dot Product Attention (SDPA) with manual sliding window causal masking when needed. It also features MPS-specific optimizations (disabling unsupported `torch.compile` paths, lowering memory batch sizes for Metal bounds, and precisely casting optimizer states) allowing you to run autonomous research agents directly on your Mac!
+`autoresearch_llm.py` proposes hyperparameter configurations via Claude Sonnet, runs `train.py` with a 5-minute time budget, fast-fails any run whose first 3 post-warmup steps average >8 s (saves ~14 min per doomed config on MPS), and appends results to `experiments/results.csv`. Each subprocess gets `HARMONY_CHECKPOINT_PATH` set so checkpoints are written automatically for downstream probing.
 
-## Running the agent
-
-Simply spin up your Claude/Codex or whatever you want in this repo (and disable all permissions), then you can prompt something like:
-
-```
-Hi have a look at program.md and let's kick off a new experiment! let's do the setup first.
+```bash
+ANTHROPIC_API_KEY=...  uv run autoresearch_llm.py --max-experiments 12
 ```
 
-The `program.md` file is essentially a super lightweight "skill".
+## Probe gate
 
-## Project structure
+`evaluate_probes.py` consumes saved checkpoints and runs frozen-weight probes:
+
+- **Probe 4 — noise robustness** (implemented). Sample 1000 val reads, generate noisy versions at 0.5/1/5% substitution rate at the DNA-sequence level (pre-tokenization), embed clean and noisy via mean-pool over DNA token positions, report cosine similarity per checkpoint × error rate.
+- **Probes 1, 2, 3** (deferred). Require resolving the val-split disposition (program.md §5 Concern 2) and producing a read→sample provenance index for the val stream. See [program.md §6](program.md) for the full gate spec.
+
+```bash
+uv run evaluate_probes.py            # probe 4 across checkpoints listed in the script
+```
+
+## Repo layout
 
 ```
-prepare.py      — constants, data prep + runtime utilities (do not modify)
-train.py        — model, optimizer, training loop (agent modifies this)
-program.md      — agent instructions
-pyproject.toml  — dependencies
+prepare_fastq.py             FASTQ → text stream (paired-end aware, sample-stem split)
+prepare_genomic.py           BPE tokenizer, dataloader, evaluation
+train.py                     single-file GPT trainer (5-min wall budget)
+model.py                     GPT, MuonAdamW, helpers (importable)
+autoresearch_llm.py          Claude-driven hyperparameter loop
+evaluate_probes.py           frozen-checkpoint representation probes (Probe 4)
+reproduce_checkpoints.py     one-shot orchestrator for re-running historical winners
+
+program.md                   current Phase −1 status, probe gate, open questions
+program_OG.md                unmodified upstream program.md (preserved for reference)
+ARCHITECTURE_V2_REDESIGN.md  broader HARMONY architecture vision
+
+experiments/                 per-run logs, results.csv, probe outputs
+tests/                       pytest suite (currently: prepare_fastq.py — 33 tests)
 ```
 
-## Design choices
+## Lineage
 
-- **Single file to modify.** The agent only touches `train.py`. This keeps the scope manageable and diffs reviewable.
-- **Fixed time budget.** Training always runs for exactly 5 minutes, regardless of your specific platform. This means you can expect approx 12 experiments/hour and approx 100 experiments while you sleep. There are two upsides of this design decision. First, this makes experiments directly comparable regardless of what the agent changes (model size, batch size, architecture, etc). Second, this means that autoresearch will find the most optimal model for your platform in that time budget. The downside is that your runs (and results) become not comparable to other people running on other compute platforms.
-- **Self-contained.** No external dependencies beyond PyTorch and a few small packages. No distributed training, no complex configs. One GPU, one file, one metric.
+Forked from [miolini/autoresearch-macos](https://github.com/miolini/autoresearch-macos), itself a macOS / MPS adaptation of [karpathy/autoresearch](https://github.com/karpathy/autoresearch). The original autoresearch single-file architecture is preserved here; HARMONY-specific work is concentrated in the data pipeline (`prepare_fastq.py`, `prepare_genomic.py`), the LLM-driven loop (`autoresearch_llm.py`), the probe driver (`evaluate_probes.py`), and the new `program.md`.
 
-## Platform support
+To pull future upstream fixes:
 
-This code currently requires that you have a single NVIDIA GPU. In principle it is quite possible to support CPU, MPS and other platforms but this would also bloat the code. I'm not 100% sure that I want to take this on personally right now. People can reference (or have their agents reference) the full/parent nanochat repository that has wider platform support and shows the various solutions (e.g. a Flash Attention 3 kernels fallback implementation, generic device support, autodetection, etc.), feel free to create forks or discussions for other platforms and I'm happy to link to them here in the README in some new notable forks section or etc.
-
-If you're going to be using autoresearch on Apple Macbooks in particular, I'd recommend one of the forks below. On top of this, if you'd like half-decent results at such a small scale, I'd recommend this [TinyStories dataset](https://huggingface.co/datasets/karpathy/tinystories-gpt4-clean) which is cleaner than what exists out there otherwise. It should be a drop in replacement because I have encoded it in exactly the same format. Any of your favorite coding agents should be able to do the swap :)
-
-## Notable forks
-
-- [miolini/autoresearch-macos](https://github.com/miolini/autoresearch-macos)
-- [trevin-creator/autoresearch-mlx](https://github.com/trevin-creator/autoresearch-mlx)
+```bash
+git fetch upstream
+git merge upstream/master   # `upstream` remote already wired to miolini/autoresearch-macos
+```
 
 ## License
 
-MIT
+MIT, inherited from the upstream autoresearch-macos and karpathy/autoresearch projects.
