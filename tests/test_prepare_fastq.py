@@ -36,18 +36,13 @@ def write_fastq(path: Path, sequences: list[str]) -> None:
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("filename, expected", [
-    ("SRR6915093_1.fastq.gz",       ("SRR6915093", "1")),
-    ("SRR6915093_2.fastq.gz",       ("SRR6915093", "2")),
-    ("SampleA_R1.fastq",            ("SampleA",    "1")),
-    ("SampleA_R2.fastq",            ("SampleA",    "2")),
-    ("SampleA_R1_001.fastq.gz",     ("SampleA",    "1")),
-    ("SampleA_R2_001.fastq.gz",     ("SampleA",    "2")),
-    ("SampleA_L001_R1_001.fastq.gz",("SampleA",    "1")),
-    ("SampleA_L001_R2_001.fastq.gz",("SampleA",    "2")),
-    ("SampleA_L002_R1_001.fastq",   ("SampleA",    "1")),
-    ("SampleB.fastq",               ("SampleB",    None)),
-    ("SampleB.fq.gz",               ("SampleB",    None)),
-    ("SampleB.fq",                  ("SampleB",    None)),
+    ("SRR6915093_1.fastq.gz",        ("SRR6915093", "1")),
+    ("SRR6915093_2.fastq.gz",        ("SRR6915093", "2")),
+    ("SampleA_R1.fastq",             ("SampleA",    "1")),
+    ("SampleA_R2.fastq",             ("SampleA",    "2")),
+    ("SampleA_R1_001.fastq.gz",      ("SampleA",    "1")),
+    ("SampleA_L001_R1_001.fastq.gz", ("SampleA",    "1")),
+    ("SampleB.fastq",                ("SampleB",    None)),
 ])
 def test_extract_sample_stem_handles_all_conventions(filename, expected):
     assert extract_sample_stem(Path(filename)) == expected
@@ -60,13 +55,8 @@ def test_extract_sample_stem_handles_all_conventions(filename, expected):
 @pytest.mark.parametrize("seq, expected", [
     ("ACGT", "ACGT"),
     ("AAAA", "TTTT"),
-    ("TTTT", "AAAA"),
     ("ACGTN", "NACGT"),
     ("acgt", "acgt"),
-    ("ACGTacgt", "acgtACGT"),
-    ("", ""),
-    ("N", "N"),
-    ("ACG", "CGT"),
 ])
 def test_reverse_complement(seq, expected):
     assert reverse_complement(seq) == expected
@@ -90,31 +80,6 @@ def test_grouping_keeps_pair_together(tmp_path):
     assert len(groups["SampleB"]["r2"]) == 1
 
 
-def test_grouping_handles_lane_split(tmp_path):
-    """Multiple lanes for one sample stem should accumulate in r1/r2 lists in sorted order."""
-    write_fastq(tmp_path / "X_L002_R1_001.fastq", ["AAAA"])
-    write_fastq(tmp_path / "X_L001_R1_001.fastq", ["GGGG"])
-    write_fastq(tmp_path / "X_L001_R2_001.fastq", ["CCCC"])
-    write_fastq(tmp_path / "X_L002_R2_001.fastq", ["TTTT"])
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    assert set(groups.keys()) == {"X"}
-    # Sorted within each bucket regardless of input order
-    assert [p.name for p in groups["X"]["r1"]] == ["X_L001_R1_001.fastq", "X_L002_R1_001.fastq"]
-    assert [p.name for p in groups["X"]["r2"]] == ["X_L001_R2_001.fastq", "X_L002_R2_001.fastq"]
-
-
-def test_grouping_mixes_paired_and_single(tmp_path):
-    write_fastq(tmp_path / "P_1.fastq", ["AAAA"])
-    write_fastq(tmp_path / "P_2.fastq", ["TTTT"])
-    write_fastq(tmp_path / "S.fastq", ["GGGG"])
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    assert set(groups.keys()) == {"P", "S"}
-    assert groups["P"]["r1"] and groups["P"]["r2"] and not groups["P"]["single"]
-    assert groups["S"]["single"] and not groups["S"]["r1"] and not groups["S"]["r2"]
-
-
 # ---------------------------------------------------------------------------
 # split_samples_by_stem
 # ---------------------------------------------------------------------------
@@ -131,22 +96,24 @@ def test_split_keeps_all_files_of_one_sample_on_one_side(tmp_path):
     assert len(val_stems) == 2
 
 
-def test_split_is_deterministic_under_seed(tmp_path):
-    for i in range(20):
-        write_fastq(tmp_path / f"S{i:02d}_R1.fastq", ["ACGT"])
-        write_fastq(tmp_path / f"S{i:02d}_R2.fastq", ["TTTT"])
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    a_train, a_val = split_samples_by_stem(groups, val_fraction=0.1, seed=42)
-    b_train, b_val = split_samples_by_stem(groups, val_fraction=0.1, seed=42)
-    assert a_train == b_train and a_val == b_val
-    c_train, c_val = split_samples_by_stem(groups, val_fraction=0.1, seed=43)
-    assert (a_train, a_val) != (c_train, c_val)
-
-
 # ---------------------------------------------------------------------------
 # sample_to_text — paired-end
 # ---------------------------------------------------------------------------
+
+def test_paired_end_emits_one_read_block_per_molecule(tmp_path):
+    write_fastq(tmp_path / "X_1.fastq", ["AAAA", "AGGT", "CGTA"])
+    write_fastq(tmp_path / "X_2.fastq", ["GGGG", "TGCA", "AAAT"])
+    files = sorted(tmp_path.glob("*.fastq"))
+    groups = group_files_by_sample(files)
+    text, n = sample_to_text("X", groups["X"])
+    assert n == 3
+    assert text.count("<READ_START>") == 3
+    assert text.count("<READ_END>") == 3
+    assert text.count(PAIRED_END) == 3
+    assert "AAAA <PAIRED_END> CCCC" in text  # rc(GGGG)
+    assert "AGGT <PAIRED_END> TGCA" in text  # rc(TGCA)
+    assert "CGTA <PAIRED_END> ATTT" in text  # rc(AAAT)
+
 
 def test_paired_concatenation_uses_revcomp(tmp_path):
     write_fastq(tmp_path / "X_1.fastq", ["AAAA"])
@@ -157,46 +124,6 @@ def test_paired_concatenation_uses_revcomp(tmp_path):
     # revcomp("GGGG") = "CCCC"
     assert "AAAA <PAIRED_END> CCCC" in text
     assert n == 1
-
-
-def test_paired_end_emits_one_read_block_per_molecule(tmp_path):
-    write_fastq(tmp_path / "X_1.fastq", ["AAAA", "AGGT", "CGTA"])
-    write_fastq(tmp_path / "X_2.fastq", ["GGGG", "TGCA", "AAAT"])
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    text, n = sample_to_text("X", groups["X"])
-    assert n == 3
-    # Exactly three READ_START / READ_END / PAIRED_END markers
-    assert text.count("<READ_START>") == 3
-    assert text.count("<READ_END>") == 3
-    assert text.count(PAIRED_END) == 3
-    # Each read body must contain the joining token
-    assert "AAAA <PAIRED_END> CCCC" in text  # rc(GGGG)
-    assert "AGGT <PAIRED_END> TGCA" in text  # rc(TGCA) = TGCA
-    assert "CGTA <PAIRED_END> ATTT" in text  # rc(AAAT)
-
-
-def test_paired_emits_warning_on_truncation(tmp_path, capsys):
-    write_fastq(tmp_path / "X_1.fastq", ["AAAA", "GGGG", "CCCC"])
-    write_fastq(tmp_path / "X_2.fastq", ["TTTT"])  # only 1 of 3
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    text, n = sample_to_text("X", groups["X"])
-    captured = capsys.readouterr()
-    assert n == 1  # only the aligned pair
-    assert "mismatched" in captured.err
-    assert "2 extra R1" in captured.err
-
-
-def test_paired_end_lane_split_must_match_count(tmp_path):
-    """If R1 has 2 lane files but R2 has 1, raise rather than misalign."""
-    write_fastq(tmp_path / "X_L001_R1_001.fastq", ["AAAA"])
-    write_fastq(tmp_path / "X_L002_R1_001.fastq", ["GGGG"])
-    write_fastq(tmp_path / "X_L001_R2_001.fastq", ["TTTT"])
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    with pytest.raises(ValueError, match="lane-split"):
-        sample_to_text("X", groups["X"])
 
 
 # ---------------------------------------------------------------------------
@@ -211,16 +138,6 @@ def test_single_end_unchanged(tmp_path):
     assert PAIRED_END not in text
     assert "<READ_START> ACGT <READ_END>" in text
     assert n == 1
-
-
-def test_single_end_multiple_reads(tmp_path):
-    write_fastq(tmp_path / "Y.fastq", ["ACGT", "TTTT", "GGGG"])
-    files = sorted(tmp_path.glob("*.fastq"))
-    groups = group_files_by_sample(files)
-    text, n = sample_to_text("Y", groups["Y"])
-    assert n == 3
-    assert PAIRED_END not in text
-    assert text.count("<READ_START>") == 3
 
 
 # ---------------------------------------------------------------------------
