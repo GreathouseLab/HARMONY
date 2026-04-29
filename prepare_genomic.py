@@ -36,7 +36,7 @@ EVAL_TOKENS = 40 * 524288
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch")
 TOKENIZER_DIR = os.path.join(CACHE_DIR, "tokenizer")
 
-# Genomic special tokens — must include the 4 tokens from prepare_fastq.py
+# Genomic special tokens — must include the 5 tokens from prepare_fastq.py
 # plus a BOS token for sequence packing.
 SPECIAL_TOKENS = [
     "<|bos|>",
@@ -44,6 +44,7 @@ SPECIAL_TOKENS = [
     "<SAMPLE_END>",
     "<READ_START>",
     "<READ_END>",
+    "<PAIRED_END>",
 ]
 BOS_TOKEN = "<|bos|>"
 
