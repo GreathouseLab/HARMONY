@@ -126,6 +126,29 @@ def test_paired_concatenation_uses_revcomp(tmp_path):
     assert n == 1
 
 
+def test_paired_emits_warning_on_truncation(tmp_path, capsys):
+    """Read-count mismatch within a lane is recoverable: warn and proceed."""
+    write_fastq(tmp_path / "X_1.fastq", ["AAAA", "GGGG", "CCCC"])
+    write_fastq(tmp_path / "X_2.fastq", ["TTTT"])  # only 1 of 3
+    files = sorted(tmp_path.glob("*.fastq"))
+    groups = group_files_by_sample(files)
+    _, n = sample_to_text("X", groups["X"])
+    captured = capsys.readouterr()
+    assert n == 1
+    assert "mismatched" in captured.err
+
+
+def test_paired_end_lane_split_must_match_count(tmp_path):
+    """Lane-count mismatch is structural: fail loudly rather than misalign."""
+    write_fastq(tmp_path / "X_L001_R1_001.fastq", ["AAAA"])
+    write_fastq(tmp_path / "X_L002_R1_001.fastq", ["GGGG"])
+    write_fastq(tmp_path / "X_L001_R2_001.fastq", ["TTTT"])
+    files = sorted(tmp_path.glob("*.fastq"))
+    groups = group_files_by_sample(files)
+    with pytest.raises(ValueError, match="lane-split"):
+        sample_to_text("X", groups["X"])
+
+
 # ---------------------------------------------------------------------------
 # sample_to_text — single-end
 # ---------------------------------------------------------------------------
