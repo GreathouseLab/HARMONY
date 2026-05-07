@@ -1,0 +1,62 @@
+=== STEP 1: prepare_fastq.py ===
+Found 280 FASTQ files in 140 samples
+  Paired-end samples: 140
+  Single-end samples: 0
+  Orphaned R2 (skipped): 0
+Split: 126 train / 14 val samples
+
+Writing train.txt ...
+  Processed 10/126 samples (2,000,000 reads so far)
+  Processed 20/126 samples (4,000,000 reads so far)
+  Processed 30/126 samples (6,000,000 reads so far)
+  Processed 40/126 samples (8,000,000 reads so far)
+  Processed 50/126 samples (10,000,000 reads so far)
+  Processed 60/126 samples (12,000,000 reads so far)
+  Processed 70/126 samples (14,000,000 reads so far)
+  Processed 80/126 samples (16,000,000 reads so far)
+  Processed 90/126 samples (18,000,000 reads so far)
+  Processed 100/126 samples (20,000,000 reads so far)
+  Processed 110/126 samples (22,000,000 reads so far)
+  Processed 120/126 samples (24,000,000 reads so far)
+  Processed 126/126 samples (25,200,000 reads so far)
+  → 126 samples, 25,200,000 reads, 5709.3 MB
+
+Writing val.txt ...
+  Processed 10/14 samples (2,000,000 reads so far)
+  Processed 14/14 samples (2,800,000 reads so far)
+  → 14 samples, 2,800,000 reads, 634.1 MB
+
+Manifest written to output/manifest.txt
+
+============================================================
+DONE
+  Train: 25,200,000 reads from 126 samples (5709.3 MB)
+  Val:   2,800,000 reads from 14 samples (634.1 MB)
+  Output: output
+
+Output format examples:
+  PE: <SAMPLE_START> <READ_START> ACGT... <PAIRED_END> TGCA... <READ_END> ... <SAMPLE_END>
+  SE: <SAMPLE_START> <READ_START> ACGTACGT... <READ_END> ... <SAMPLE_END>
+
+NOTE: BPE tokenizer must be retrained on this stream so <PAIRED_END> is in vocab.
+=== STEP 2: prepare_genomic.py ===
+Data: train.txt = 5986.6 MB, val.txt = 664.9 MB
+Tokenizer cache: /Users/leigh_greathouse/.cache/autoresearch/tokenizer
+Vocab size: 4096
+
+Tokenizer: training BPE tokenizer on genomic data...
+Tokenizer: trained in 1111.8s, vocab_size=4096
+Tokenizer: saved to /Users/leigh_greathouse/.cache/autoresearch/tokenizer/tokenizer.pkl
+Tokenizer: building token_bytes lookup...
+Tokenizer: saved token_bytes to /Users/leigh_greathouse/.cache/autoresearch/tokenizer/token_bytes.pt
+Tokenizer: sanity check passed
+
+Example encodings:
+  ACGTACGT                       -> [65, 383, 1123]
+  NNNNNN                         -> [78, 78, 78, 78, 78, 78]
+  ATATATATATAT                   -> [1602, 329, 819]
+  <READ_START>                   -> [4093]
+  <SAMPLE_END>                   -> [4092]
+
+Done! Ready to train.
+Next: modify train.py to import from prepare_genomic instead of prepare
