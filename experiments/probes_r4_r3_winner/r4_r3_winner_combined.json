@@ -1,0 +1,35 @@
+{
+  "checkpoint": "experiments/r4_r3_winner/checkpoint.pt",
+  "val_bpb_reproduced": 1.9480080575713707,
+  "probe1_auc": 0.5241586464,
+  "probe1_delta_mean": 0.008422443578243177,
+  "probe1_n_within_pairs": 50000,
+  "probe1_n_between_pairs": 50000,
+  "probe4_cos_at_1pct": 0.9968921300768853,
+  "probe4_rows": [
+    {
+      "checkpoint": "r4_r3_winner",
+      "error_rate": 0.005,
+      "cos_mean": 0.9984490700364113,
+      "cos_median": 0.9993749856948853,
+      "cos_std": 0.002648025145720549,
+      "n_reads": 1000
+    },
+    {
+      "checkpoint": "r4_r3_winner",
+      "error_rate": 0.01,
+      "cos_mean": 0.9968921300768853,
+      "cos_median": 0.9981978833675385,
+      "cos_std": 0.0037577375203988713,
+      "n_reads": 1000
+    },
+    {
+      "checkpoint": "r4_r3_winner",
+      "error_rate": 0.05,
+      "cos_mean": 0.9854870086312294,
+      "cos_median": 0.9881656765937805,
+      "cos_std": 0.010031515286240763,
+      "n_reads": 1000
+    }
+  ]
+}

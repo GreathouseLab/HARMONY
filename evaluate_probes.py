@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import random
 import re
 import time
@@ -43,7 +44,9 @@ N_READS = 1000
 RNG_SEED = 42
 
 BASES = ("A", "C", "G", "T")
-READ_RE = re.compile(r"<READ_START>\s+([ACGTN]+)\s+<READ_END>")
+# Body may contain <PAIRED_END> on the post-2026-04-29 leak-free corpus.
+# Non-greedy capture so adjacent reads don't merge.
+READ_RE = re.compile(r"<READ_START>\s+(.*?)\s+<READ_END>", re.DOTALL)
 
 
 # ---------------------------------------------------------------------------
@@ -63,7 +66,12 @@ def sample_val_reads(path: Path, n: int, seed: int) -> list[str]:
 
 def add_substitution_noise(seq: str, error_rate: float, rng: np.random.Generator) -> str:
     """Per-base substitution: with prob error_rate, replace with a different base from {A,C,G,T}.
-    N bases are left untouched (they're already ambiguous)."""
+    N bases are left untouched (they're already ambiguous). On the leak-free
+    corpus reads contain a `<PAIRED_END>` marker between mate pairs — split on
+    it and noise each half independently so the marker is preserved."""
+    if "<PAIRED_END>" in seq:
+        parts = seq.split("<PAIRED_END>")
+        return "<PAIRED_END>".join(add_substitution_noise(p, error_rate, rng) for p in parts)
     arr = np.array(list(seq))
     is_acgt = np.isin(arr, BASES)
     flip_mask = (rng.random(len(arr)) < error_rate) & is_acgt
@@ -81,11 +89,14 @@ def add_substitution_noise(seq: str, error_rate: float, rng: np.random.Generator
 # ---------------------------------------------------------------------------
 
 def embed_read(model: GPT, tokenizer: Tokenizer, dna: str, device: torch.device,
-               read_start_id: int, read_end_id: int) -> np.ndarray | None:
-    """Tokenize <READ_START> dna <READ_END>, forward, mean-pool over DNA positions."""
+               special_ids: set[int]) -> np.ndarray | None:
+    """Tokenize <READ_START> dna <READ_END>, forward, mean-pool over DNA positions.
+    `special_ids` is the set of all special-token ids to exclude from the mean
+    (READ_START/READ_END/PAIRED_END/etc.); kept consistent with Probe 1.
+    """
     text = f"<READ_START> {dna} <READ_END>"
     ids = tokenizer.encode(text)  # list[int]
-    mask = [(t != read_start_id and t != read_end_id) for t in ids]
+    mask = [t not in special_ids for t in ids]
     if not any(mask):
         return None
     x = torch.tensor([ids], dtype=torch.long, device=device)
@@ -134,8 +145,13 @@ def run_probe4(checkpoints: list[tuple[str, float, Path]]) -> tuple[list[dict], 
     device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
     print(f"Device: {device}")
     tokenizer = Tokenizer.from_directory()
-    rs_id = tokenizer.enc.encode_single_token("<READ_START>")
-    re_id = tokenizer.enc.encode_single_token("<READ_END>")
+    special_ids: set[int] = set()
+    for name in ("<|bos|>", "<SAMPLE_START>", "<SAMPLE_END>",
+                 "<READ_START>", "<READ_END>", "<PAIRED_END>"):
+        try:
+            special_ids.add(tokenizer.enc.encode_single_token(name))
+        except Exception:
+            pass
 
     print(f"Sampling {N_READS} reads from {VAL_PATH}…")
     t0 = time.time()
@@ -168,14 +184,14 @@ def run_probe4(checkpoints: list[tuple[str, float, Path]]) -> tuple[list[dict], 
         # Embed clean reads
         print(f"  embedding {len(reads)} clean reads…")
         t_clean = time.time()
-        clean_emb = [embed_read(model, tokenizer, r, device, rs_id, re_id) for r in reads]
+        clean_emb = [embed_read(model, tokenizer, r, device, special_ids) for r in reads]
         print(f"    done in {time.time()-t_clean:.1f}s")
 
         for er in ERROR_RATES:
             t_er = time.time()
             sims = []
             for i, r_noisy in enumerate(noisy_versions[er]):
-                e_n = embed_read(model, tokenizer, r_noisy, device, rs_id, re_id)
+                e_n = embed_read(model, tokenizer, r_noisy, device, special_ids)
                 if clean_emb[i] is None or e_n is None:
                     continue
                 sims.append(cosine(clean_emb[i], e_n))
@@ -305,19 +321,94 @@ def write_summary_md(rows: list[dict], headline_rows: list[dict], path: Path):
 # Main
 # ---------------------------------------------------------------------------
 
+def run_all_probes(checkpoint_path: Path, val_path: Path, output_dir: Path,
+                   n_reads_per_sample: int = 100, seed: int = RNG_SEED) -> dict:
+    """Run every implemented probe on a single checkpoint, write per-probe JSONs
+    and a combined summary. Used by `--probe all --checkpoint <path>`.
+    """
+    from probe_sample_coherence import run_probe1
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    ckpt_name = checkpoint_path.parent.name
+
+    # Probe 1
+    p1 = run_probe1(
+        checkpoint_path=checkpoint_path,
+        val_path=val_path,
+        output_path=output_dir / f"{ckpt_name}_probe1.json",
+        n_reads_per_sample=n_reads_per_sample,
+        seed=seed,
+    )
+
+    # Probe 4 — reuse run_probe4 with a single-element checkpoint list. The
+    # original val_bpb in the tuple is just for display/reference; pull from the
+    # checkpoint dict.
+    ckpt = torch.load(checkpoint_path, map_location="cpu", weights_only=False)
+    declared_val_bpb = float(ckpt.get("val_bpb", float("nan")))
+    p4_rows, p4_headline = run_probe4([(ckpt_name, declared_val_bpb, checkpoint_path)])
+    p4_at_1pct = next((r["cos_mean"] for r in p4_rows if abs(r["error_rate"] - 0.01) < 1e-9), None)
+
+    combined = {
+        "checkpoint": str(checkpoint_path),
+        "val_bpb_reproduced": declared_val_bpb,
+        "probe1_auc": p1["auc"],
+        "probe1_delta_mean": p1.get("delta_mean"),
+        "probe1_n_within_pairs": p1.get("n_within_pairs"),
+        "probe1_n_between_pairs": p1.get("n_between_pairs"),
+        "probe4_cos_at_1pct": p4_at_1pct,
+        "probe4_rows": p4_rows,
+    }
+
+    out_path = output_dir / f"{ckpt_name}_combined.json"
+    with open(out_path, "w") as f:
+        json.dump(combined, f, indent=2)
+    print(f"\nSaved combined summary -> {out_path}")
+    return combined
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--probe", type=int, default=4, choices=[4],
-                        help="Which probe to run (only 4 implemented).")
+    parser.add_argument("--probe", default="4",
+                        choices=["1", "4", "all"],
+                        help="Which probe(s) to run. 'all' runs probes 1+4 on a single checkpoint.")
+    parser.add_argument("--checkpoint", type=Path, default=None,
+                        help="Single checkpoint .pt path. Required for --probe 1 or --probe all.")
+    parser.add_argument("--val-path", type=Path, default=VAL_PATH)
+    parser.add_argument("--output", type=Path, default=None,
+                        help="Output JSON (probe 1) or output dir (probe all). "
+                             "Defaults to experiments/<ckpt_name>_probe1.json or experiments/probes_<ckpt_name>/.")
+    parser.add_argument("--n-reads-per-sample", type=int, default=100)
     args = parser.parse_args()
-    if args.probe != 4:
-        raise SystemExit("Only probe 4 is implemented; probes 1/2/3 are deferred per program.md §6.")
 
-    rows, headline_rows = run_probe4(CHECKPOINTS)
-    if not rows:
-        raise SystemExit("No checkpoints loaded — nothing to write.")
-    write_csv(rows, EXPERIMENTS_DIR / "probe_noise_robustness.csv")
-    write_summary_md(rows, headline_rows, EXPERIMENTS_DIR / "probe4_summary.md")
+    if args.probe == "4":
+        rows, headline_rows = run_probe4(CHECKPOINTS)
+        if not rows:
+            raise SystemExit("No checkpoints loaded — nothing to write.")
+        write_csv(rows, EXPERIMENTS_DIR / "probe_noise_robustness.csv")
+        write_summary_md(rows, headline_rows, EXPERIMENTS_DIR / "probe4_summary.md")
+    elif args.probe == "1":
+        if args.checkpoint is None:
+            raise SystemExit("--probe 1 requires --checkpoint <path>.")
+        from probe_sample_coherence import run_probe1
+        ckpt_name = args.checkpoint.parent.name
+        out = args.output or (EXPERIMENTS_DIR / f"{ckpt_name}_probe1.json")
+        run_probe1(
+            checkpoint_path=args.checkpoint,
+            val_path=args.val_path,
+            output_path=out,
+            n_reads_per_sample=args.n_reads_per_sample,
+        )
+    elif args.probe == "all":
+        if args.checkpoint is None:
+            raise SystemExit("--probe all requires --checkpoint <path>.")
+        ckpt_name = args.checkpoint.parent.name
+        out_dir = args.output or (EXPERIMENTS_DIR / f"probes_{ckpt_name}")
+        run_all_probes(
+            checkpoint_path=args.checkpoint,
+            val_path=args.val_path,
+            output_dir=out_dir,
+            n_reads_per_sample=args.n_reads_per_sample,
+        )
 
 
 if __name__ == "__main__":

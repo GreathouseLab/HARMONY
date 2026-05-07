@@ -48,6 +48,25 @@ EXPERIMENTS_DIR = PROJECT_DIR / "experiments"
 RESULTS_CSV = EXPERIMENTS_DIR / "results.csv"
 PYTHON = str(PROJECT_DIR / ".venv" / "bin" / "python3.12")
 
+
+def _load_dotenv(path: Path = PROJECT_DIR / ".env"):
+    """Minimal .env loader — KEY=VALUE per line, # comments, optional quotes.
+    Existing env vars are not overwritten."""
+    if not path.exists():
+        return
+    for raw in path.read_text().splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if key and key not in os.environ:
+            os.environ[key] = value
+
+
+_load_dotenv()
+
 # ---------------------------------------------------------------------------
 # Budget defaults
 # ---------------------------------------------------------------------------
@@ -181,6 +200,26 @@ def restore_train_py(original_content):
 # ---------------------------------------------------------------------------
 # Experiment runner
 # ---------------------------------------------------------------------------
+
+def evaluate_probe1(checkpoint_path: Path, exp_dir: Path,
+                    val_path: Path = PROJECT_DIR / "output" / "val.txt",
+                    n_reads_per_sample: int = 100):
+    """Run Probe 1 (sample-coherence) on a freshly-trained checkpoint.
+    Returns (auc, dmean) on success, (None, None) on any failure (failure does
+    not abort the experiment — the val_bpb result is still useful)."""
+    try:
+        from probe_sample_coherence import run_probe1
+        result = run_probe1(
+            checkpoint_path=checkpoint_path,
+            val_path=val_path,
+            output_path=exp_dir / "probe1.json",
+            n_reads_per_sample=n_reads_per_sample,
+        )
+        return result.get("auc"), result.get("delta_mean")
+    except Exception as e:
+        print(f"  [probe1] WARNING: probe1 evaluation failed: {e}")
+        return None, None
+
 
 def parse_results(output):
     results = {}
@@ -332,6 +371,14 @@ def run_experiment(name, description, overrides, experiment_idx):
     print(f"  peak_vram_mb: {metrics.get('peak_vram_mb', '?')}")
     print(f"  wall:         {wall_time:.0f}s")
 
+    # Probe 1 (sample-coherence) — diagnostic, runs only if the checkpoint was saved.
+    probe1_auc, probe1_dmean = (None, None)
+    if checkpoint_path.exists():
+        print(f"  [probe1] evaluating sample-coherence on {checkpoint_path.name}…")
+        probe1_auc, probe1_dmean = evaluate_probe1(checkpoint_path, exp_dir)
+        if probe1_auc is not None:
+            print(f"  probe1_auc:   {probe1_auc:.4f}  (Δmean={probe1_dmean:+.4f})")
+
     return {
         **base_record,
         "status": "OK",
@@ -344,6 +391,8 @@ def run_experiment(name, description, overrides, experiment_idx):
         "mfu_percent": metrics.get("mfu_percent"),
         "wall_time": wall_time,
         "timestamp": datetime.now().isoformat(),
+        "probe1_auc": probe1_auc,
+        "probe1_dmean": probe1_dmean,
     }
 
 
@@ -352,6 +401,10 @@ CSV_FIELDS = [
     "val_bpb", "num_params_M", "num_steps", "total_tokens_M",
     "training_seconds", "peak_vram_mb", "mfu_percent",
     "wall_time", "timestamp", "error",
+    # Probe 1 (sample-coherence ROC-AUC, higher = better) — diagnostic only;
+    # selection criterion remains val_bpb. See experiments/probes_r4_summary.md
+    # for why we track AUC alongside.
+    "probe1_auc", "probe1_dmean",
 ]
 
 
@@ -423,7 +476,12 @@ AVAILABLE HYPERPARAMETERS:
 {hyperparams_json}
 
 GUIDELINES:
-- Focus on val_bpb improvement — that's the only metric that matters
+- Optimize val_bpb (lower is better) — that's the selection metric.
+- We also report probe1_auc (sample-coherence ROC-AUC, ~0.50 = chance, higher = more
+  sample-discriminating embeddings). This is diagnostic, not the optimization target —
+  but on prior R4 data, val_bpb-best models had the LOWEST probe1_auc (representational
+  collapse). If you can find a config that improves val_bpb AND raises probe1_auc above
+  the current ~0.522 ceiling, that's a strong signal — call it out in your reasoning.
 - Change 1-3 hyperparameters at a time to understand what works
 - Learn from failures: OOM means too large, TIMEOUT means too slow on this hardware
 - The genomic data is DNA sequences (A/C/G/T/N) with special tokens — very different from NLP
@@ -451,8 +509,10 @@ def build_results_summary(results):
 
     for r in ok_results:
         vram = r.get("peak_vram_mb") or "?"
+        auc = r.get("probe1_auc")
+        auc_str = f"{float(auc):.4f}" if auc not in (None, "", "None") else "n/a"
         lines.append(
-            f"  {r['name']}: val_bpb={r['val_bpb']} | "
+            f"  {r['name']}: val_bpb={r['val_bpb']} | probe1_auc={auc_str} | "
             f"params={r.get('num_params_M', '?')}M | "
             f"steps={r.get('num_steps', '?')} | "
             f"vram_mb={vram} | "

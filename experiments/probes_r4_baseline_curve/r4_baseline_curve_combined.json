@@ -1,0 +1,35 @@
+{
+  "checkpoint": "experiments/r4_baseline_curve/checkpoint.pt",
+  "val_bpb_reproduced": 1.939989451712793,
+  "probe1_auc": 0.522420908,
+  "probe1_delta_mean": 0.006619303563237144,
+  "probe1_n_within_pairs": 50000,
+  "probe1_n_between_pairs": 50000,
+  "probe4_cos_at_1pct": 0.9973615190982819,
+  "probe4_rows": [
+    {
+      "checkpoint": "r4_baseline_curve",
+      "error_rate": 0.005,
+      "cos_mean": 0.9986889505982399,
+      "cos_median": 0.9993945360183716,
+      "cos_std": 0.002208816468616941,
+      "n_reads": 1000
+    },
+    {
+      "checkpoint": "r4_baseline_curve",
+      "error_rate": 0.01,
+      "cos_mean": 0.9973615190982819,
+      "cos_median": 0.9981887638568878,
+      "cos_std": 0.0028830831379836473,
+      "n_reads": 1000
+    },
+    {
+      "checkpoint": "r4_baseline_curve",
+      "error_rate": 0.05,
+      "cos_mean": 0.9877513361573219,
+      "cos_median": 0.9896591603755951,
+      "cos_std": 0.00784650517692649,
+      "n_reads": 1000
+    }
+  ]
+}

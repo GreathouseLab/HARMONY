@@ -1,0 +1,26 @@
+{
+  "probe": "sample_coherence",
+  "checkpoint": "experiments/repro_baseline_rerun/checkpoint.pt",
+  "checkpoint_meta": {
+    "n_embd": 256,
+    "n_layer": 4,
+    "vocab_size": 4096,
+    "val_bpb": 1.9352281419971473,
+    "git_sha": "1cb7510",
+    "seed": 42,
+    "hyperparams": null
+  },
+  "n_samples": 14,
+  "n_reads_per_sample": 100,
+  "n_reads_total": 1400,
+  "seed": 42,
+  "device": "mps",
+  "auc": 0.5044795104,
+  "n_within_pairs": 50000,
+  "n_between_pairs": 50000,
+  "mean_within_cos": 0.9595753715121746,
+  "mean_between_cos": 0.9594438505756855,
+  "std_within_cos": 0.0198108414555986,
+  "std_between_cos": 0.019498886869394525,
+  "delta_mean": 0.00013152093648916008
+}

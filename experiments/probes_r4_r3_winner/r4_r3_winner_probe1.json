@@ -1,0 +1,26 @@
+{
+  "probe": "sample_coherence",
+  "checkpoint": "experiments/r4_r3_winner/checkpoint.pt",
+  "checkpoint_meta": {
+    "n_embd": 256,
+    "n_layer": 4,
+    "vocab_size": 4096,
+    "val_bpb": 1.9480080575713707,
+    "git_sha": "f7aa5b9",
+    "seed": 42,
+    "hyperparams": null
+  },
+  "n_samples": 14,
+  "n_reads_per_sample": 100,
+  "n_reads_total": 1400,
+  "seed": 42,
+  "device": "mps",
+  "auc": 0.5241586464,
+  "n_within_pairs": 50000,
+  "n_between_pairs": 50000,
+  "mean_within_cos": 0.8730359383523464,
+  "mean_between_cos": 0.8646134947741032,
+  "std_within_cos": 0.09297470443259247,
+  "std_between_cos": 0.09919518471379188,
+  "delta_mean": 0.008422443578243177
+}
