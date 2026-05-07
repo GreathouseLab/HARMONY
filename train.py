@@ -9,6 +9,8 @@ os.environ["PYTORCH_ALLOC_CONF"] = "expandable_segments:True"
 os.environ["HF_HUB_DISABLE_PROGRESS_BARS"] = "1"
 
 import gc
+import json
+import math
 import time
 from dataclasses import dataclass, asdict
 
@@ -27,7 +29,7 @@ def verify_macos_env():
 
 verify_macos_env()
 
-from prepare_genomic import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb
+from prepare_genomic import MAX_SEQ_LEN, TIME_BUDGET, Tokenizer, make_dataloader, evaluate_bpb, get_token_bytes
 from model import GPT, GPTConfig, MuonAdamW
 
 # ---------------------------------------------------------------------------
@@ -54,6 +56,10 @@ FINAL_LR_FRAC = 0.0     # final LR as fraction of initial
 # Model size
 DEPTH = 4               # number of transformer layers
 DEVICE_BATCH_SIZE = 16  # per-device batch size (reduce if OOM)
+
+# Convergence monitoring (mini-eval excluded from training_time budget)
+EVAL_INTERVAL_STEPS = 10 # mini-eval every N optimizer steps; 0 disables
+MINI_EVAL_BATCHES = 4   # fixed val batches per mini-eval (4*B*T ~= 131k tokens)
 
 # ---------------------------------------------------------------------------
 # Setup: tokenizer, model, optimizer, dataloader
@@ -130,8 +136,51 @@ if device_type == "cuda":
 train_loader = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "train")
 x, y, epoch = next(train_loader)  # prefetch first batch
 
+# Pre-fetch a fixed set of val batches for cheap convergence-monitoring evals.
+# Reusing the same batches every check makes the curve interpretable (no
+# inter-eval batch noise) and keeps overhead off the 300s training budget.
+mini_eval_batches = []
+if MINI_EVAL_BATCHES > 0 and EVAL_INTERVAL_STEPS > 0:
+    _val_loader_curve = make_dataloader(tokenizer, DEVICE_BATCH_SIZE, MAX_SEQ_LEN, "val")
+    for _ in range(MINI_EVAL_BATCHES):
+        vx, vy, _ = next(_val_loader_curve)
+        mini_eval_batches.append((vx, vy))
+    del _val_loader_curve
+_token_bytes_curve = get_token_bytes(device=device) if mini_eval_batches else None
+
+def mini_eval_bpb():
+    """Bits-per-byte over the fixed mini-eval batches. Toggles eval/train mode."""
+    nats = 0.0
+    nbytes_total = 0
+    model.eval()
+    try:
+        with autocast_ctx, torch.no_grad():
+            for vx, vy in mini_eval_batches:
+                loss_flat = model(vx, vy, reduction='none').view(-1)
+                y_flat = vy.view(-1)
+                nbytes = _token_bytes_curve[y_flat]
+                mask = nbytes > 0
+                nats += (loss_flat * mask).sum().item()
+                nbytes_total += nbytes.sum().item()
+    finally:
+        model.train()
+    if nbytes_total == 0:
+        return float('nan')
+    return nats / (math.log(2) * nbytes_total)
+
+# Output paths for val curve artifacts (next to checkpoint if set, else cwd).
+_ckpt_env = os.environ.get("HARMONY_CHECKPOINT_PATH")
+_artifact_dir = os.path.dirname(_ckpt_env) if _ckpt_env else "."
+val_curve = []
+val_curve_jsonl = os.path.join(_artifact_dir, "val_curve.jsonl") if mini_eval_batches else None
+if val_curve_jsonl and os.path.exists(val_curve_jsonl):
+    os.remove(val_curve_jsonl)  # fresh file per run
+
 print(f"Time budget: {TIME_BUDGET}s")
 print(f"Gradient accumulation steps: {grad_accum_steps}")
+if mini_eval_batches:
+    print(f"Mini-eval: every {EVAL_INTERVAL_STEPS} steps on {MINI_EVAL_BATCHES} fixed val batches "
+          f"(~{MINI_EVAL_BATCHES * DEVICE_BATCH_SIZE * MAX_SEQ_LEN // 1000}k tokens)")
 
 # Schedules (all based on progress = training_time / TIME_BUDGET)
 
@@ -215,6 +264,26 @@ while True:
 
     print(f"\rstep {step:05d} ({pct_done:.1f}%) | loss: {debiased_smooth_loss:.6f} | lrm: {lrm:.2f} | dt: {dt*1000:.0f}ms | tok/sec: {tok_per_sec:,} | mfu: {mfu:.1f}% | epoch: {epoch} | remaining: {remaining:.0f}s    ", end="", flush=True)
 
+    # Mini-eval for convergence curve (overhead excluded from total_training_time)
+    if mini_eval_batches and (step + 1) % EVAL_INTERVAL_STEPS == 0:
+        sync_device(device_type)
+        t_eval0 = time.time()
+        bpb_mini = mini_eval_bpb()
+        sync_device(device_type)
+        eval_dt = time.time() - t_eval0
+        point = {
+            "step": step + 1,
+            "training_time": total_training_time,
+            "progress": progress,
+            "val_bpb": bpb_mini,
+            "full_eval": False,
+        }
+        val_curve.append(point)
+        if val_curve_jsonl:
+            with open(val_curve_jsonl, "a") as _f:
+                _f.write(json.dumps(point) + "\n")
+        print(f"\n[mini-eval] step {step+1:>5d} val_bpb={bpb_mini:.4f} (overhead {eval_dt*1000:.0f}ms)", flush=True)
+
     # GC management (Python's GC causes ~500ms stalls)
     if step == 0:
         gc.collect()
@@ -260,6 +329,72 @@ print(f"total_tokens_M:   {total_tokens / 1e6:.1f}")
 print(f"num_steps:        {step}")
 print(f"num_params_M:     {num_params / 1e6:.1f}")
 print(f"depth:            {DEPTH}")
+
+# Append the final full-budget eval to the curve and render a PNG.
+if mini_eval_batches:
+    final_point = {
+        "step": step,
+        "training_time": total_training_time,
+        "progress": 1.0,
+        "val_bpb": float(val_bpb),
+        "full_eval": True,
+    }
+    val_curve.append(final_point)
+    if val_curve_jsonl:
+        with open(val_curve_jsonl, "a") as _f:
+            _f.write(json.dumps(final_point) + "\n")
+
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as _plt
+
+        steps_arr = [pt["step"] for pt in val_curve]
+        bpbs_arr = [pt["val_bpb"] for pt in val_curve]
+        full_idx = [i for i, pt in enumerate(val_curve) if pt.get("full_eval")]
+
+        fig, ax = _plt.subplots(figsize=(8, 5))
+        ax.plot(steps_arr, bpbs_arr, "-o", markersize=3, linewidth=1,
+                label=f"mini-eval ({MINI_EVAL_BATCHES} val batches, ~{MINI_EVAL_BATCHES*DEVICE_BATCH_SIZE*MAX_SEQ_LEN//1000}k tok)")
+        for i in full_idx:
+            ax.plot(steps_arr[i], bpbs_arr[i], "*", markersize=18, color="tab:red",
+                    label="final full eval (~21M tok)" if i == full_idx[0] else None,
+                    zorder=5)
+        ax.set_xlabel("optimizer step")
+        ax.set_ylabel("val_bpb")
+        title_bits = [f"depth={DEPTH}", f"matrix_lr={MATRIX_LR}",
+                      f"warmup={WARMUP_RATIO}", f"wd={WEIGHT_DECAY}"]
+        ax.set_title("val_bpb curve  |  " + ", ".join(title_bits))
+        ax.grid(alpha=0.3)
+        ax.legend(loc="upper right")
+        fig.tight_layout()
+        png_path = os.path.join(_artifact_dir, "val_curve.png")
+        fig.savefig(png_path, dpi=120)
+        _plt.close(fig)
+        print(f"val_curve_plot:   {png_path}")
+        print(f"val_curve_jsonl:  {val_curve_jsonl}")
+    except Exception as _e:
+        print(f"val_curve_plot:   FAILED ({_e!r})")
+
+# Across-runs progress chart: regenerated every run so the user sees the
+# search trajectory accumulate. Reads existing results.csv + r{N}_*/stdout.txt
+# directories. Flush first so this run's stdout file (if redirected) is on
+# disk before the subprocess reads it.
+sys.stdout.flush()
+try:
+    import subprocess as _sp_plot
+    _plot_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plot_progress.py")
+    if os.path.exists(_plot_script):
+        _r = _sp_plot.run(
+            [sys.executable, _plot_script],
+            check=False, timeout=60, capture_output=True, text=True,
+        )
+        if _r.stdout.strip():
+            print(_r.stdout.strip())
+        if _r.returncode != 0:
+            print(f"progress_plot:    FAILED (exit {_r.returncode}) {_r.stderr.strip()[:200]}")
+except Exception as _e:
+    print(f"progress_plot:    FAILED ({_e!r})")
 
 # ---------------------------------------------------------------------------
 # Optional checkpoint save
