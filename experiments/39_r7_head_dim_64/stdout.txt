@@ -1,0 +1,53 @@
+Environment verified: macOS detected with Metal (MPS) hardware acceleration available.
+
+Vocab size: 4,096
+Model config: {'sequence_len': 2048, 'vocab_size': 4096, 'n_layer': 4, 'n_head': 4, 'n_kv_head': 4, 'n_embd': 256, 'window_pattern': 'L'}
+Parameter counts:
+  wte                     : 1,048,576
+  value_embeds            : 2,097,152
+  lm_head                 : 1,048,576
+  transformer_matrices    : 3,145,984
+  scalars                 : 8
+  total                   : 7,340,296
+Estimated FLOPs per token: 5.033318e+07
+Scaling AdamW LRs by 1/sqrt(256/768) = 1.732051
+Time budget: 300s
+Gradient accumulation steps: 2
+Mini-eval: every 10 steps on 4 fixed val batches (~131k tokens)
+
+step 00000 (0.0%) | loss: 8.318762 | lrm: 0.00 | dt: 23799ms | tok/sec: 2,753 | mfu: 0.0% | epoch: 1 | remaining: 300s    
+step 00001 (0.0%) | loss: 8.318757 | lrm: 0.00 | dt: 17471ms | tok/sec: 3,751 | mfu: 0.0% | epoch: 1 | remaining: 300s    
+step 00002 (0.0%) | loss: 8.318812 | lrm: 0.00 | dt: 4216ms | tok/sec: 15,545 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00003 (0.0%) | loss: 8.318811 | lrm: 0.00 | dt: 3682ms | tok/sec: 17,797 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00004 (0.0%) | loss: 8.318784 | lrm: 0.00 | dt: 5976ms | tok/sec: 10,966 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00005 (0.0%) | loss: 8.318792 | lrm: 0.00 | dt: 3290ms | tok/sec: 19,921 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00006 (0.0%) | loss: 8.318752 | lrm: 0.00 | dt: 3356ms | tok/sec: 19,526 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00007 (0.0%) | loss: 8.318755 | lrm: 0.00 | dt: 3656ms | tok/sec: 17,927 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00008 (0.0%) | loss: 8.318735 | lrm: 0.00 | dt: 6211ms | tok/sec: 10,551 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00009 (0.0%) | loss: 8.318724 | lrm: 0.00 | dt: 4047ms | tok/sec: 16,193 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+[mini-eval] step    10 val_bpb=2.7175 (overhead 2420ms)
+
+step 00010 (0.0%) | loss: 8.318715 | lrm: 0.00 | dt: 4323ms | tok/sec: 15,158 | mfu: 0.1% | epoch: 1 | remaining: 300s    
+step 00011 (0.0%) | loss: 8.318722 | lrm: 0.00 | dt: 3668ms | tok/sec: 17,866 | mfu: 0.1% | epoch: 1 | remaining: 296s    
+step 00012 (1.2%) | loss: 8.318729 | lrm: 0.24 | dt: 5108ms | tok/sec: 12,830 | mfu: 0.1% | epoch: 1 | remaining: 291s    
+step 00013 (2.9%) | loss: 8.309819 | lrm: 0.59 | dt: 6453ms | tok/sec: 10,156 | mfu: 0.1% | epoch: 1 | remaining: 285s    
+step 00014 (5.1%) | loss: 8.255298 | lrm: 1.00 | dt: 55472ms | tok/sec: 1,181 | mfu: 0.0% | epoch: 1 | remaining: 229s    
+step 00015 (23.6%) | loss: 8.079514 | lrm: 1.00 | dt: 72064ms | tok/sec: 909 | mfu: 0.0% | epoch: 1 | remaining: 157s    
+step 00016 (47.6%) | loss: 7.918443 | lrm: 1.00 | dt: 93884ms | tok/sec: 698 | mfu: 0.0% | epoch: 1 | remaining: 63s    
+step 00017 (78.9%) | loss: 7.768545 | lrm: 0.42 | dt: 118888ms | tok/sec: 551 | mfu: 0.0% | epoch: 1 | remaining: 0s    
+---
+val_bpb:          2.222539
+training_seconds: 355.5
+total_seconds:    660.2
+peak_vram_mb:     15468.0
+mfu_percent:      0.01
+total_tokens_M:   1.2
+num_steps:        18
+num_params_M:     7.3
+depth:            4
+val_curve_plot:   /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/39_r7_head_dim_64/val_curve.png
+val_curve_jsonl:  /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/39_r7_head_dim_64/val_curve.jsonl
+python3.12(6820) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+python3.12(6821) MallocStackLogging: can't turn off malloc stack logging because it was not enabled.
+progress_plot:    /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/progress.png
+checkpoint_saved: /Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/39_r7_head_dim_64/checkpoint.pt

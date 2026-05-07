@@ -1,0 +1,26 @@
+{
+  "probe": "sample_coherence",
+  "checkpoint": "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/75_r43_emb_lr_065_unemb_003_warmdown70_wd010_scalar04_warmup5pct_matrixlr020_headdim128_ar64_depth4_bs32k_finallr0/checkpoint.pt",
+  "checkpoint_meta": {
+    "n_embd": 256,
+    "n_layer": 4,
+    "vocab_size": 4096,
+    "val_bpb": 1.93122135950382,
+    "git_sha": "f7aa5b9",
+    "seed": 42,
+    "hyperparams": null
+  },
+  "n_samples": 14,
+  "n_reads_per_sample": 100,
+  "n_reads_total": 1400,
+  "seed": 42,
+  "device": "mps",
+  "auc": 0.5202693046,
+  "n_within_pairs": 50000,
+  "n_between_pairs": 50000,
+  "mean_within_cos": 0.87658665756464,
+  "mean_between_cos": 0.8723705600148439,
+  "std_within_cos": 0.05903822375366005,
+  "std_between_cos": 0.060911984151453484,
+  "delta_mean": 0.004216097549796127
+}

@@ -1,0 +1,26 @@
+{
+  "probe": "sample_coherence",
+  "checkpoint": "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/experiments/66_r34_deeper_depth6_bs8_best_combo/checkpoint.pt",
+  "checkpoint_meta": {
+    "n_embd": 256,
+    "n_layer": 6,
+    "vocab_size": 4096,
+    "val_bpb": 1.9467575013473613,
+    "git_sha": "f7aa5b9",
+    "seed": 42,
+    "hyperparams": null
+  },
+  "n_samples": 14,
+  "n_reads_per_sample": 100,
+  "n_reads_total": 1400,
+  "seed": 42,
+  "device": "mps",
+  "auc": 0.5255193344,
+  "n_within_pairs": 50000,
+  "n_between_pairs": 50000,
+  "mean_within_cos": 0.8707990977808833,
+  "mean_between_cos": 0.8606567616665364,
+  "std_within_cos": 0.113585106723508,
+  "std_between_cos": 0.12071770452646374,
+  "delta_mean": 0.010142336114346895
+}

@@ -1,0 +1,15 @@
+{"step": 10, "training_time": 0, "progress": 0.0, "val_bpb": 2.7175138754418837, "full_eval": false}
+{"step": 20, "training_time": 21.839324951171875, "progress": 0.06530510663986205, "val_bpb": 2.2478682484730954, "full_eval": false}
+{"step": 30, "training_time": 44.423585176467896, "progress": 0.14060565074284873, "val_bpb": 2.0867102894768808, "full_eval": false}
+{"step": 40, "training_time": 67.7440116405487, "progress": 0.2183573627471924, "val_bpb": 2.06763656653465, "full_eval": false}
+{"step": 50, "training_time": 90.67315173149109, "progress": 0.29536468664805093, "val_bpb": 2.0439548649593497, "full_eval": false}
+{"step": 60, "training_time": 112.44437861442566, "progress": 0.36755624135335285, "val_bpb": 2.023202783158112, "full_eval": false}
+{"step": 70, "training_time": 135.25011229515076, "progress": 0.4434291982650757, "val_bpb": 2.003023649764205, "full_eval": false}
+{"step": 80, "training_time": 157.71421766281128, "progress": 0.5187201285362244, "val_bpb": 1.9980544464908918, "full_eval": false}
+{"step": 90, "training_time": 179.92730236053467, "progress": 0.5928381713231404, "val_bpb": 1.9896256503149277, "full_eval": false}
+{"step": 100, "training_time": 202.99845170974731, "progress": 0.6687988654772441, "val_bpb": 1.9810919878217228, "full_eval": false}
+{"step": 110, "training_time": 227.03934836387634, "progress": 0.7485109210014343, "val_bpb": 1.9736020106694132, "full_eval": false}
+{"step": 120, "training_time": 252.35986948013306, "progress": 0.8337313874562582, "val_bpb": 1.9679213093449457, "full_eval": false}
+{"step": 130, "training_time": 274.961674451828, "progress": 0.9092575812339783, "val_bpb": 1.9628293195609388, "full_eval": false}
+{"step": 140, "training_time": 296.51636362075806, "progress": 0.9813985482851664, "val_bpb": 1.9600121987791066, "full_eval": false}
+{"step": 142, "training_time": 301.44804668426514, "progress": 1.0, "val_bpb": 1.9555176577584843, "full_eval": true}
