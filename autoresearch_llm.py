@@ -687,6 +687,16 @@ Respond with ONLY a JSON object."""
 # ---------------------------------------------------------------------------
 
 def main():
+    # Tripwire: fail-closed against the 2026-05-15 retry-storm incident.
+    # See context.json incidents[0] (id: autoresearch_cost_incident_2026_05_15)
+    # and DO_NOT_RELAUNCH.flag in repo root.
+    tripwire = PROJECT_DIR / "DO_NOT_RELAUNCH.flag"
+    if tripwire.exists():
+        print(f"ERROR: Tripwire file present at {tripwire}", file=sys.stderr)
+        print(f"This script is disabled pending fixes from the 2026-05-15 incident.", file=sys.stderr)
+        print(f"See the flag file contents for required fixes before re-enabling.", file=sys.stderr)
+        sys.exit(2)
+
     import argparse
     parser = argparse.ArgumentParser(description="LLM-driven HARMONY autoresearch loop")
     parser.add_argument("--max-experiments", type=int, default=DEFAULT_MAX_EXPERIMENTS,
