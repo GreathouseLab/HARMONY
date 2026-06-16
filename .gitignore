@@ -35,3 +35,6 @@ train.py.baseline
 # Large model checkpoints — regenerable from train.py + saved configs
 experiments/**/checkpoint.pt
 *.pt
+
+# R / IDE scratch
+.Rhistory

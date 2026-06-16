@@ -1,0 +1,17 @@
+{"step": 10, "training_time": 0, "progress": 0.0, "val_bpb": 2.7176578186819644, "full_eval": false}
+{"step": 20, "training_time": 16.286895513534546, "progress": 0.04831398248672485, "val_bpb": 2.2599023705569583, "full_eval": false}
+{"step": 30, "training_time": 34.57894730567932, "progress": 0.10926251093546549, "val_bpb": 2.1177512320413867, "full_eval": false}
+{"step": 40, "training_time": 52.6556179523468, "progress": 0.16967413266499837, "val_bpb": 2.0880657036345736, "full_eval": false}
+{"step": 50, "training_time": 70.39873671531677, "progress": 0.22748417297999063, "val_bpb": 2.0712873163271603, "full_eval": false}
+{"step": 60, "training_time": 88.85716819763184, "progress": 0.2901953609784444, "val_bpb": 2.0285587350134895, "full_eval": false}
+{"step": 70, "training_time": 106.94835209846497, "progress": 0.3506707429885864, "val_bpb": 2.0211328723027493, "full_eval": false}
+{"step": 80, "training_time": 125.10135293006897, "progress": 0.41113725026448567, "val_bpb": 2.006345037047167, "full_eval": false}
+{"step": 90, "training_time": 144.886164188385, "progress": 0.4749688140551249, "val_bpb": 1.9977751254956329, "full_eval": false}
+{"step": 100, "training_time": 163.97512316703796, "progress": 0.5404768045743307, "val_bpb": 1.9937049070566786, "full_eval": false}
+{"step": 110, "training_time": 183.4080045223236, "progress": 0.6049195551872253, "val_bpb": 1.9888401272818204, "full_eval": false}
+{"step": 120, "training_time": 204.077885389328, "progress": 0.6733612744013469, "val_bpb": 1.9824449705980847, "full_eval": false}
+{"step": 130, "training_time": 226.15485954284668, "progress": 0.7434287889798482, "val_bpb": 1.9740800054228749, "full_eval": false}
+{"step": 140, "training_time": 247.85175681114197, "progress": 0.8196379566192626, "val_bpb": 1.9688479816554614, "full_eval": false}
+{"step": 150, "training_time": 268.6260142326355, "progress": 0.8887657769521078, "val_bpb": 1.964756189913736, "full_eval": false}
+{"step": 160, "training_time": 288.9845311641693, "progress": 0.9570412898063659, "val_bpb": 1.9620193675345117, "full_eval": false}
+{"step": 166, "training_time": 301.7562563419342, "progress": 1.0, "val_bpb": 1.9583830479783302, "full_eval": true}
