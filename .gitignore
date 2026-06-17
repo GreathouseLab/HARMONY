@@ -38,3 +38,7 @@ experiments/**/checkpoint.pt
 
 # R / IDE scratch
 .Rhistory
+
+# Autoresearch loop runtime logs (kept local, regenerable)
+experiments/_loop_logs/
+experiments/loop_*.log
