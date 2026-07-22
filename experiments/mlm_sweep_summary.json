@@ -1,0 +1,68 @@
+{
+  "A_control": {
+    "cap": "cap=15",
+    "mask": "mask=0.15",
+    "best_val_top1": 0.112015,
+    "best_step": 8000,
+    "final_val_top1": 0.112015,
+    "ce_at_best": 6.193678,
+    "within_arm_noise_spread": 0.006,
+    "val_top1_trajectory": [
+      0.1083,
+      0.106,
+      0.107,
+      0.112
+    ]
+  },
+  "B_capoff": {
+    "cap": "cap=off",
+    "mask": "mask=0.15",
+    "best_val_top1": 0.110965,
+    "best_step": 6000,
+    "final_val_top1": 0.110178,
+    "ce_at_best": 6.424088,
+    "within_arm_noise_spread": 0.0066,
+    "val_top1_trajectory": [
+      0.1094,
+      0.1044,
+      0.111,
+      0.1102
+    ]
+  },
+  "C_mask10": {
+    "cap": "cap=15",
+    "mask": "mask=0.10",
+    "best_val_top1": 0.109129,
+    "best_step": 6000,
+    "final_val_top1": 0.107293,
+    "ce_at_best": 6.270685,
+    "within_arm_noise_spread": 0.0066,
+    "val_top1_trajectory": [
+      0.1026,
+      0.1055,
+      0.1091,
+      0.1073
+    ]
+  },
+  "D_both": {
+    "cap": "cap=off",
+    "mask": "mask=0.10",
+    "best_val_top1": 0.10808,
+    "best_step": 6000,
+    "final_val_top1": 0.103882,
+    "ce_at_best": 6.632294,
+    "within_arm_noise_spread": 0.0063,
+    "val_top1_trajectory": [
+      0.1018,
+      0.1078,
+      0.1081,
+      0.1039
+    ]
+  },
+  "references": {
+    "unigram": 0.0923,
+    "prior_depth2_lam0": 0.109,
+    "count_model_clean_ceiling": 0.1352,
+    "count_model_overall": 0.1272
+  }
+}

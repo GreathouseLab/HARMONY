@@ -13,7 +13,13 @@ from dataclasses import dataclass
 
 # Device-type detection for optimizer compile decisions.
 # Mirrors the logic in train.py.
-_device_type = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+try:
+    from device_utils import get_device as _get_device, device_type as _dtype
+    _device_type = _dtype(_get_device())
+except Exception:  # keep model.py importable standalone
+    _device_type = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+# NOTE (Aurora port): 'xpu' deliberately falls through to the NON-compiled optimizer path below
+# (same as mps) until torch.compile is validated on Intel Max GPUs. Revisit after a numerics check.
 
 
 @dataclass

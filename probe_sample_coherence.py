@@ -238,13 +238,16 @@ def compute_sample_coherence(embeddings: np.ndarray, sample_labels: np.ndarray,
 
 def run_probe1(checkpoint_path: Path, val_path: Path, output_path: Path,
                n_reads_per_sample: int = 100, seed: int = 42,
-               device: str | torch.device = "mps",
+               device: str | torch.device | None = None,
                model=None, tokenizer=None, ckpt_meta: dict | None = None):
     """Run Probe 1 on a single checkpoint, write JSON results.
 
     If `model`/`tokenizer` are passed in, the loader is skipped (used by the
     integration in evaluate_probes when running multiple probes back-to-back).
     """
+    if device is None:                      # autodetect: xpu (Aurora) > cuda > mps > cpu
+        from device_utils import get_device
+        device = get_device()
     if isinstance(device, str):
         device_t = torch.device(device)
     else:

@@ -42,3 +42,14 @@ experiments/**/checkpoint.pt
 # Autoresearch loop runtime logs (kept local, regenerable)
 experiments/_loop_logs/
 experiments/loop_*.log
+
+# MLM + contrastive arm artifacts (large checkpoints + per-step JSONL/logs; kept local)
+experiments/mlm_smoke/
+experiments/mlm_mvt/
+
+# Large / numerous regenerable run artifacts (keep summaries + trajectories, drop the bulk)
+experiments/**/train_mlm_log.jsonl
+experiments/**/probe1_step*.json
+experiments/**/decoded_predictions.html
+experiments/**/decoded_predictions.tsv
+*.pdf

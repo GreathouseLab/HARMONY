@@ -1,0 +1,56 @@
+{
+  "method": "bidirectional one-neighbor interpolation with gold neighbors (count-based, untuned)",
+  "interpolation_weights": {
+    "tri": 0.5,
+    "left": 0.2,
+    "right": 0.2,
+    "uni": 0.1
+  },
+  "train_path": "output/train.txt",
+  "val_path": "output/val.txt",
+  "n_train_reads": 189000,
+  "n_per_sample_train_cap": 1500,
+  "eval": {
+    "n_msk_dna_positions": 4701,
+    "mask_seed": 7,
+    "n_per_sample_val": 50,
+    "excluded_token_ids": [
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095,
+      4096
+    ]
+  },
+  "results": {
+    "unigram_sanity": {
+      "top1": 0.0874282067645182,
+      "top5": null,
+      "ce_nats": 6.750543172900982
+    },
+    "left_only_gold_bigram": {
+      "top1": 0.09168262071899595,
+      "top5": 0.13635396724101256,
+      "ce_nats": 6.495184980934726
+    },
+    "bidirectional_gold_trigram": {
+      "top1": 0.12720697723888535,
+      "top5": 0.18293980004254415,
+      "ce_nats": 6.284726734777452
+    }
+  },
+  "reference_points": {
+    "established_unigram_top1": 0.0923,
+    "established_unigram_ce": 6.7304,
+    "depth2_lam0_mlm_top1": 0.109,
+    "depth2_lam0_mlm_ce": 6.2701,
+    "depth4_big_mlm_top1": 0.1119,
+    "depth4_big_mlm_ce": 6.8506
+  },
+  "verdict": {
+    "bidirectional_top1_minus_depth2_mlm": 0.018206977238885355,
+    "interpretation": "Local co-occurrence ALONE (gold neighbors, count model) reaches the neural MLM's MSK-DNA top-1 -> the within-read signal the MLM captures is essentially local n-gram statistics; the ceiling looks intrinsic to local context. Push INFORMATION (paired mate / longer context) or move to Layer 2, not capacity."
+  }
+}
