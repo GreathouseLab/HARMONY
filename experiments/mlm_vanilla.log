@@ -1,0 +1,26 @@
+/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/.venv/lib/python3.12/site-packages/torch/nn/modules/transformer.py:385: UserWarning: enable_nested_tensor is True, but self.use_nested_tensor is False because encoder_layer.norm_first was True
+  warnings.warn(
+[paired_loader] path: output/train.txt
+[paired_loader] parsed 126 samples, 25200 reads (dropped 0 reads > seq_len=64 tokens)
+[paired_loader] batch recipe: K=4 samples × M=8 reads = batch size 32
+[paired_loader] pad token id=4090 (<|bos|>) — never a mask candidate
+[vanilla] standard nn.TransformerEncoder: d=256 heads=4 layers=4 ffn=1024 dropout=0.1 | params=5.28M (depth-2 ref=4.82M)
+[vanilla] AdamW lr=0.0003 wd=0.01 warmup=500 | no softcap/Muon/rotary
+  step 00000 | MLM=8.3737 | lr=6.00e-07 | dt=794ms/step
+  step 01000 | MLM=6.2092 | lr=3.00e-04 | dt=41ms/step
+  step 02000 | MLM=6.2150 | lr=3.00e-04 | dt=41ms/step
+[vanilla] step 2000 | val_msk top1=0.1049 top5=0.1364 CE=6.3150 (n=3812)
+  step 03000 | MLM=6.2536 | lr=3.00e-04 | dt=43ms/step
+  step 04000 | MLM=5.9893 | lr=3.00e-04 | dt=42ms/step
+[vanilla] step 4000 | val_msk top1=0.1073 top5=0.1367 CE=6.2681 (n=3812)
+  step 05000 | MLM=6.3081 | lr=3.00e-04 | dt=43ms/step
+  step 06000 | MLM=6.0307 | lr=3.00e-04 | dt=43ms/step
+[vanilla] step 6000 | val_msk top1=0.1073 top5=0.1419 CE=6.2524 (n=3812)
+  step 07000 | MLM=5.9298 | lr=3.00e-04 | dt=43ms/step
+  step 08000 | MLM=5.6856 | lr=3.00e-04 | dt=43ms/step
+[vanilla] step 8000 | val_msk top1=0.1068 top5=0.1414 CE=6.2213 (n=3812)
+  step 09000 | MLM=5.8116 | lr=3.00e-04 | dt=44ms/step
+
+[vanilla] BEST val top1=0.1073 @ step 4000 (vs our-stack 0.1120, count-model 0.1352)
+[vanilla] verdict [ceiling-is-real]: Vanilla encoder lands at ~0.11 too -> 0.135 is near the real generalization ceiling for a learned model on this within-read task; the count model just memorizes local stats. Stop chasing within-read; the lever is added information / Layer 2.
+[vanilla] wrote experiments/mlm_vanilla/vanilla_result.json

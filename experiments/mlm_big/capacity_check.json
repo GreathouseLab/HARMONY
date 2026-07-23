@@ -1,0 +1,218 @@
+{
+  "checkpoint": "experiments/mlm_big/checkpoint.pt",
+  "checkpoint_step": 39999,
+  "model": {
+    "depth": 4,
+    "aspect_ratio": 192,
+    "n_embd": 768,
+    "n_head": 6,
+    "total_params_M": 41.127688,
+    "fold_vs_lam0_baseline": 8.532715352697094
+  },
+  "args_changed_from_lam0": {
+    "--depth": "2 -> 4",
+    "--aspect-ratio": "128 -> 192",
+    "--max-steps": "20000 -> 40000"
+  },
+  "args_replicated_from_lam0": {
+    "--eval-every": 2000,
+    "--max-runtime-hours": 12,
+    "--log-every": 200,
+    "--samples-per-batch": 4,
+    "--reads-per-sample": 8,
+    "--reads-cap": 200,
+    "--seq-len": 64,
+    "--lam": 0,
+    "--seed": 42,
+    "train-val-paths": {
+      "train": "output/train.txt",
+      "val": "output/val.txt"
+    }
+  },
+  "training": {
+    "step_0_losses": [
+      8.322147369384766,
+      3.561906576156616
+    ],
+    "step_final_losses": [
+      3.735387086868286,
+      3.4471378326416016
+    ],
+    "wall_clock_s": 12207.3,
+    "ms_per_step_cum_final_log": 321,
+    "probe_trajectory": [
+      {
+        "step": 2000,
+        "wall_s": 643.3,
+        "L_MLM": 5.686488,
+        "probe1_auc": 0.519883
+      },
+      {
+        "step": 4000,
+        "wall_s": 1281.9,
+        "L_MLM": 5.395245,
+        "probe1_auc": 0.51839
+      },
+      {
+        "step": 6000,
+        "wall_s": 1912.2,
+        "L_MLM": 5.400671,
+        "probe1_auc": 0.520188
+      },
+      {
+        "step": 8000,
+        "wall_s": 2551.1,
+        "L_MLM": 5.54002,
+        "probe1_auc": 0.518071
+      },
+      {
+        "step": 10000,
+        "wall_s": 3189.2,
+        "L_MLM": 5.219829,
+        "probe1_auc": 0.518744
+      },
+      {
+        "step": 12000,
+        "wall_s": 3835.5,
+        "L_MLM": 4.951015,
+        "probe1_auc": 0.516563
+      },
+      {
+        "step": 14000,
+        "wall_s": 4490.8,
+        "L_MLM": 4.861678,
+        "probe1_auc": 0.515536
+      },
+      {
+        "step": 16000,
+        "wall_s": 5153.9,
+        "L_MLM": 4.691067,
+        "probe1_auc": 0.514297
+      },
+      {
+        "step": 18000,
+        "wall_s": 5815.0,
+        "L_MLM": 4.883625,
+        "probe1_auc": 0.516988
+      },
+      {
+        "step": 20000,
+        "wall_s": 6472.0,
+        "L_MLM": 4.504285,
+        "probe1_auc": 0.514966
+      },
+      {
+        "step": 22000,
+        "wall_s": 7139.0,
+        "L_MLM": 4.894327,
+        "probe1_auc": 0.518579
+      },
+      {
+        "step": 24000,
+        "wall_s": 7796.3,
+        "L_MLM": 4.483356,
+        "probe1_auc": 0.516605
+      },
+      {
+        "step": 26000,
+        "wall_s": 8429.9,
+        "L_MLM": 4.241443,
+        "probe1_auc": 0.517264
+      },
+      {
+        "step": 28000,
+        "wall_s": 9057.7,
+        "L_MLM": 4.537624,
+        "probe1_auc": 0.519704
+      },
+      {
+        "step": 30000,
+        "wall_s": 9685.7,
+        "L_MLM": 4.239522,
+        "probe1_auc": 0.515463
+      },
+      {
+        "step": 32000,
+        "wall_s": 10314.3,
+        "L_MLM": 3.999698,
+        "probe1_auc": 0.519022
+      },
+      {
+        "step": 34000,
+        "wall_s": 10948.1,
+        "L_MLM": 3.672423,
+        "probe1_auc": 0.51872
+      },
+      {
+        "step": 36000,
+        "wall_s": 11577.2,
+        "L_MLM": 3.768888,
+        "probe1_auc": 0.514691
+      },
+      {
+        "step": 38000,
+        "wall_s": 12207.3,
+        "L_MLM": 3.769342,
+        "probe1_auc": 0.518445
+      }
+    ],
+    "still_descending_at_cap": true,
+    "msk_dna_trajectory_note": "MSK-DNA top-1 trajectory per eval is not measured \u2014 the periodic eval logs Probe 1 AUC, not MSK-DNA top-1. We have one MSK-DNA top-1 number per checkpoint (this final). If you want per-step MSK-DNA top-1 you'd need to re-run the decoder on best.pt/latest.pt too."
+  },
+  "decode_eval": {
+    "n_val_reads": 700,
+    "n_total_masked_positions": 4745,
+    "branch_counts": {
+      "MSK": 3761,
+      "KEEP": 493,
+      "RAND": 491
+    },
+    "excluded_token_ids": [
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095,
+      4096
+    ],
+    "excluded_token_names": [
+      "<|bos|>",
+      "<SAMPLE_START>",
+      "<SAMPLE_END>",
+      "<READ_START>",
+      "<READ_END>",
+      "<PAIRED_END>",
+      "[MASK]"
+    ],
+    "msk_dna_n_positions": 3761,
+    "msk_dna_top1": 0.11193831427811753,
+    "msk_dna_top5": 0.14357883541611274,
+    "msk_dna_ce_nats": 6.850619194433976
+  },
+  "comparison": {
+    "unigram": {
+      "params_M": 0,
+      "top1": 0.0923,
+      "ce_nats": 6.7304
+    },
+    "lam0_depth2": {
+      "params_M": 4.82,
+      "top1": 0.109,
+      "top5": 0.1521,
+      "ce_nats": 6.2701
+    },
+    "big_depth4": {
+      "params_M": 41.127688,
+      "top1": 0.11193831427811753,
+      "top5": 0.14357883541611274,
+      "ce_nats": 6.850619194433976
+    },
+    "delta_big_minus_lam0_top1": 0.0029383142781175264,
+    "delta_big_minus_lam0_ce_nats": 0.5805191944339754
+  },
+  "verdict": {
+    "label": "inconclusive-still-climbing",
+    "interpretation": "inconclusive \u2014 bigger model trained better on MLM loss but MSK-DNA top-1 hasn't moved yet; still descending"
+  }
+}

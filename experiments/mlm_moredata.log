@@ -1,0 +1,498 @@
+[train_mlm] device: mps
+[train_mlm] tokenizer vocab_size=4096; extending to 4097 (added [MASK]=4096)
+[paired_loader] path: output/train.txt
+[paired_loader] parsed 126 samples, 252000 reads (dropped 0 reads > seq_len=64 tokens)
+[paired_loader] batch recipe: K=4 samples × M=8 reads = batch size 32
+[paired_loader] pad token id=4090 (<|bos|>) — never a mask candidate
+[train_mlm] train-eval memorization set: 700 reads
+[train_mlm] model: depth=2 n_embd=256 params=4.82M
+[train_mlm] mlm_softcap=15.0 (<=0 = off) | train mask_prob=0.15
+[GPT_MLM.setup_optimizer] Muon body + AdamW heads (incl. projection_head). AdamW LR scale = 1.732051
+[train_mlm] pre-step checkpoint: experiments/mlm_moredata/checkpoint.pt (15.09 MB)
+[train_mlm] periodic Probe 1 + VAL-MLM every 1000 steps -> experiments/mlm_moredata/probe_trajectory.csv
+  step 0000 | MLM=8.3191 con=3.5528 total=8.3191 | distinct_samples=4 | dt=1785ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.8s; shape=(700, 256)
+  Coherence computed in 0.3s
+    AUC = 0.5189
+    delta_mean = +0.0004 (within 0.9845 vs between 0.9841)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step01000.json
+[mvt] step 1000 | wall 102s | probe1_auc=0.5189 | val_msk top1=0.1041 CE=6.5035 | TRAIN_msk top1=0.0986 CE=6.5421 | eval_dt=25.8s
+[mvt] NEW BEST AUC 0.5189 at step 1000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.5035 (top1=0.1041) at step 1000 -> experiments/mlm_moredata/best_val.pt
+  step 2000 | MLM=5.7726 con=3.4436 total=5.7726 | distinct_samples=4 | dt=89ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.2s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5160
+    delta_mean = +0.0002 (within 0.9881 vs between 0.9879)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step02000.json
+[mvt] step 2000 | wall 201s | probe1_auc=0.5160 | val_msk top1=0.1057 CE=6.2796 | TRAIN_msk top1=0.0981 CE=6.3473 | eval_dt=22.0s
+[mvt] NEW BEST VAL-MLM CE 6.2796 (top1=0.1057) at step 2000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5164
+    delta_mean = +0.0004 (within 0.9826 vs between 0.9821)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step03000.json
+[mvt] step 3000 | wall 299s | probe1_auc=0.5164 | val_msk top1=0.1086 CE=6.2456 | TRAIN_msk top1=0.0989 CE=6.3100 | eval_dt=22.6s
+[mvt] NEW BEST VAL-MLM CE 6.2456 (top1=0.1086) at step 3000 -> experiments/mlm_moredata/best_val.pt
+  step 4000 | MLM=6.0050 con=3.4443 total=6.0050 | distinct_samples=4 | dt=94ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5197
+    delta_mean = +0.0006 (within 0.9821 vs between 0.9815)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step04000.json
+[mvt] step 4000 | wall 399s | probe1_auc=0.5197 | val_msk top1=0.1083 CE=6.2220 | TRAIN_msk top1=0.1010 CE=6.2933 | eval_dt=23.4s
+[mvt] NEW BEST AUC 0.5197 at step 4000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.2220 (top1=0.1083) at step 4000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5217
+    delta_mean = +0.0008 (within 0.9772 vs between 0.9764)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step05000.json
+[mvt] step 5000 | wall 499s | probe1_auc=0.5217 | val_msk top1=0.1068 CE=6.1833 | TRAIN_msk top1=0.1007 CE=6.2712 | eval_dt=22.7s
+[mvt] NEW BEST AUC 0.5217 at step 5000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.1833 (top1=0.1068) at step 5000 -> experiments/mlm_moredata/best_val.pt
+  step 6000 | MLM=6.0459 con=3.4315 total=6.0459 | distinct_samples=4 | dt=96ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5214
+    delta_mean = +0.0011 (within 0.9728 vs between 0.9717)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step06000.json
+[mvt] step 6000 | wall 597s | probe1_auc=0.5214 | val_msk top1=0.1110 CE=6.1818 | TRAIN_msk top1=0.0992 CE=6.2599 | eval_dt=22.0s
+[mvt] NEW BEST VAL-MLM CE 6.1818 (top1=0.1110) at step 6000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.6s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5177
+    delta_mean = +0.0009 (within 0.9716 vs between 0.9707)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step07000.json
+[mvt] step 7000 | wall 694s | probe1_auc=0.5177 | val_msk top1=0.1139 CE=6.1585 | TRAIN_msk top1=0.1015 CE=6.2438 | eval_dt=22.4s
+[mvt] NEW BEST VAL-MLM CE 6.1585 (top1=0.1139) at step 7000 -> experiments/mlm_moredata/best_val.pt
+  step 8000 | MLM=5.6307 con=3.4237 total=5.6307 | distinct_samples=4 | dt=96ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.3s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5210
+    delta_mean = +0.0009 (within 0.9782 vs between 0.9773)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step08000.json
+[mvt] step 8000 | wall 791s | probe1_auc=0.5210 | val_msk top1=0.1089 CE=6.1432 | TRAIN_msk top1=0.0976 CE=6.2085 | eval_dt=22.0s
+[mvt] NEW BEST VAL-MLM CE 6.1432 (top1=0.1089) at step 8000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.3s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5207
+    delta_mean = +0.0010 (within 0.9767 vs between 0.9757)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step09000.json
+[mvt] step 9000 | wall 888s | probe1_auc=0.5207 | val_msk top1=0.1097 CE=6.1182 | TRAIN_msk top1=0.1076 CE=6.1878 | eval_dt=21.7s
+[mvt] NEW BEST VAL-MLM CE 6.1182 (top1=0.1097) at step 9000 -> experiments/mlm_moredata/best_val.pt
+  step 10000 | MLM=5.7369 con=3.4448 total=5.7369 | distinct_samples=4 | dt=96ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5222
+    delta_mean = +0.0014 (within 0.9729 vs between 0.9715)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step10000.json
+[mvt] step 10000 | wall 983s | probe1_auc=0.5222 | val_msk top1=0.1115 CE=6.1187 | TRAIN_msk top1=0.1036 CE=6.1736 | eval_dt=20.8s
+[mvt] NEW BEST AUC 0.5222 at step 10000 -> experiments/mlm_moredata/best.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.5s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5218
+    delta_mean = +0.0014 (within 0.9741 vs between 0.9726)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step11000.json
+[mvt] step 11000 | wall 1072s | probe1_auc=0.5218 | val_msk top1=0.1091 CE=6.1072 | TRAIN_msk top1=0.1015 CE=6.1586 | eval_dt=20.1s
+[mvt] NEW BEST VAL-MLM CE 6.1072 (top1=0.1091) at step 11000 -> experiments/mlm_moredata/best_val.pt
+  step 12000 | MLM=5.7534 con=3.4532 total=5.7534 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.5s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5231
+    delta_mean = +0.0023 (within 0.9643 vs between 0.9620)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step12000.json
+[mvt] step 12000 | wall 1161s | probe1_auc=0.5231 | val_msk top1=0.1107 CE=6.1114 | TRAIN_msk top1=0.1042 CE=6.1716 | eval_dt=20.1s
+[mvt] NEW BEST AUC 0.5231 at step 12000 -> experiments/mlm_moredata/best.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5245
+    delta_mean = +0.0023 (within 0.9631 vs between 0.9607)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step13000.json
+[mvt] step 13000 | wall 1256s | probe1_auc=0.5245 | val_msk top1=0.1076 CE=6.0972 | TRAIN_msk top1=0.1039 CE=6.1427 | eval_dt=21.3s
+[mvt] NEW BEST AUC 0.5245 at step 13000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.0972 (top1=0.1076) at step 13000 -> experiments/mlm_moredata/best_val.pt
+  step 14000 | MLM=5.9153 con=3.4948 total=5.9153 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5247
+    delta_mean = +0.0018 (within 0.9730 vs between 0.9712)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step14000.json
+[mvt] step 14000 | wall 1354s | probe1_auc=0.5247 | val_msk top1=0.1146 CE=6.0776 | TRAIN_msk top1=0.1089 CE=6.1365 | eval_dt=21.4s
+[mvt] NEW BEST AUC 0.5247 at step 14000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.0776 (top1=0.1146) at step 14000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5262
+    delta_mean = +0.0029 (within 0.9611 vs between 0.9582)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step15000.json
+[mvt] step 15000 | wall 1448s | probe1_auc=0.5262 | val_msk top1=0.1149 CE=6.0763 | TRAIN_msk top1=0.1031 CE=6.1362 | eval_dt=21.5s
+[mvt] NEW BEST AUC 0.5262 at step 15000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.0763 (top1=0.1149) at step 15000 -> experiments/mlm_moredata/best_val.pt
+  step 16000 | MLM=5.3579 con=3.4848 total=5.3579 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.2s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5267
+    delta_mean = +0.0029 (within 0.9613 vs between 0.9584)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step16000.json
+[mvt] step 16000 | wall 1544s | probe1_auc=0.5267 | val_msk top1=0.1118 CE=6.0876 | TRAIN_msk top1=0.1018 CE=6.1264 | eval_dt=21.5s
+[mvt] NEW BEST AUC 0.5267 at step 16000 -> experiments/mlm_moredata/best.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.6s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5257
+    delta_mean = +0.0035 (within 0.9512 vs between 0.9477)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step17000.json
+[mvt] step 17000 | wall 1641s | probe1_auc=0.5257 | val_msk top1=0.1133 CE=6.0703 | TRAIN_msk top1=0.1070 CE=6.1230 | eval_dt=21.8s
+[mvt] NEW BEST VAL-MLM CE 6.0703 (top1=0.1133) at step 17000 -> experiments/mlm_moredata/best_val.pt
+  step 18000 | MLM=5.8670 con=3.4528 total=5.8670 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5226
+    delta_mean = +0.0020 (within 0.9679 vs between 0.9659)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step18000.json
+[mvt] step 18000 | wall 1737s | probe1_auc=0.5226 | val_msk top1=0.1120 CE=6.0757 | TRAIN_msk top1=0.1070 CE=6.1064 | eval_dt=21.5s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.2s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5244
+    delta_mean = +0.0019 (within 0.9697 vs between 0.9677)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step19000.json
+[mvt] step 19000 | wall 1835s | probe1_auc=0.5244 | val_msk top1=0.1162 CE=6.0558 | TRAIN_msk top1=0.1036 CE=6.1072 | eval_dt=21.7s
+[mvt] NEW BEST VAL-MLM CE 6.0558 (top1=0.1162) at step 19000 -> experiments/mlm_moredata/best_val.pt
+  step 20000 | MLM=5.3256 con=3.4534 total=5.3256 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5248
+    delta_mean = +0.0027 (within 0.9602 vs between 0.9575)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step20000.json
+[mvt] step 20000 | wall 1930s | probe1_auc=0.5248 | val_msk top1=0.1136 CE=6.0527 | TRAIN_msk top1=0.1065 CE=6.0986 | eval_dt=21.6s
+[mvt] NEW BEST VAL-MLM CE 6.0527 (top1=0.1136) at step 20000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.5s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5254
+    delta_mean = +0.0026 (within 0.9605 vs between 0.9579)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step21000.json
+[mvt] step 21000 | wall 2026s | probe1_auc=0.5254 | val_msk top1=0.1170 CE=6.0289 | TRAIN_msk top1=0.1031 CE=6.0993 | eval_dt=21.9s
+[mvt] NEW BEST VAL-MLM CE 6.0289 (top1=0.1170) at step 21000 -> experiments/mlm_moredata/best_val.pt
+  step 22000 | MLM=5.7595 con=3.4454 total=5.7595 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5265
+    delta_mean = +0.0025 (within 0.9648 vs between 0.9623)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step22000.json
+[mvt] step 22000 | wall 2121s | probe1_auc=0.5265 | val_msk top1=0.1165 CE=6.0465 | TRAIN_msk top1=0.1081 CE=6.0938 | eval_dt=20.6s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 2.0s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.2s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5268
+    delta_mean = +0.0027 (within 0.9641 vs between 0.9614)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step23000.json
+[mvt] step 23000 | wall 2213s | probe1_auc=0.5268 | val_msk top1=0.1157 CE=6.0426 | TRAIN_msk top1=0.1094 CE=6.0818 | eval_dt=23.3s
+[mvt] NEW BEST AUC 0.5268 at step 23000 -> experiments/mlm_moredata/best.pt
+  step 24000 | MLM=5.1650 con=3.4943 total=5.1650 | distinct_samples=4 | dt=95ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5272
+    delta_mean = +0.0030 (within 0.9606 vs between 0.9576)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step24000.json
+[mvt] step 24000 | wall 2311s | probe1_auc=0.5272 | val_msk top1=0.1186 CE=6.0264 | TRAIN_msk top1=0.1073 CE=6.0805 | eval_dt=22.3s
+[mvt] NEW BEST AUC 0.5272 at step 24000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.0264 (top1=0.1186) at step 24000 -> experiments/mlm_moredata/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5274
+    delta_mean = +0.0024 (within 0.9686 vs between 0.9663)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step25000.json
+[mvt] step 25000 | wall 2410s | probe1_auc=0.5274 | val_msk top1=0.1139 CE=6.0143 | TRAIN_msk top1=0.1065 CE=6.0461 | eval_dt=21.7s
+[mvt] NEW BEST AUC 0.5274 at step 25000 -> experiments/mlm_moredata/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.0143 (top1=0.1139) at step 25000 -> experiments/mlm_moredata/best_val.pt
+  step 26000 | MLM=5.4629 con=3.4465 total=5.4629 | distinct_samples=4 | dt=96ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.6s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5266
+    delta_mean = +0.0017 (within 0.9752 vs between 0.9735)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step26000.json
+[mvt] step 26000 | wall 2506s | probe1_auc=0.5266 | val_msk top1=0.1152 CE=6.0216 | TRAIN_msk top1=0.1123 CE=6.0549 | eval_dt=22.2s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5262
+    delta_mean = +0.0019 (within 0.9714 vs between 0.9695)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step27000.json
+[mvt] step 27000 | wall 2605s | probe1_auc=0.5262 | val_msk top1=0.1133 CE=6.0070 | TRAIN_msk top1=0.1076 CE=6.0506 | eval_dt=22.0s
+[mvt] NEW BEST VAL-MLM CE 6.0070 (top1=0.1133) at step 27000 -> experiments/mlm_moredata/best_val.pt
+  step 28000 | MLM=5.7273 con=3.4871 total=5.7273 | distinct_samples=4 | dt=96ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.5s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5255
+    delta_mean = +0.0017 (within 0.9724 vs between 0.9706)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step28000.json
+[mvt] step 28000 | wall 2704s | probe1_auc=0.5255 | val_msk top1=0.1159 CE=6.0083 | TRAIN_msk top1=0.1068 CE=6.0509 | eval_dt=22.6s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_moredata/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.5s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5244
+    delta_mean = +0.0016 (within 0.9738 vs between 0.9722)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_moredata/probe1_step29000.json
+[mvt] step 29000 | wall 2804s | probe1_auc=0.5244 | val_msk top1=0.1162 CE=6.0005 | TRAIN_msk top1=0.1118 CE=6.0426 | eval_dt=22.4s
+[mvt] NEW BEST VAL-MLM CE 6.0005 (top1=0.1162) at step 29000 -> experiments/mlm_moredata/best_val.pt
+[train_mlm] final checkpoint: experiments/mlm_moredata/checkpoint.pt (15.09 MB)
+[train_mlm] step 0 losses: (8.319079399108887, 3.5528221130371094)
+[train_mlm] last losses:   (5.315828800201416, 3.471559762954712)

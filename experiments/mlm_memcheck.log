@@ -1,0 +1,237 @@
+[train_mlm] device: mps
+[train_mlm] tokenizer vocab_size=4096; extending to 4097 (added [MASK]=4096)
+[paired_loader] path: output/train.txt
+[paired_loader] parsed 126 samples, 6300 reads (dropped 0 reads > seq_len=64 tokens)
+[paired_loader] batch recipe: K=4 samples × M=8 reads = batch size 32
+[paired_loader] pad token id=4090 (<|bos|>) — never a mask candidate
+[train_mlm] train-eval memorization set: 700 reads
+[train_mlm] model: depth=2 n_embd=256 params=4.82M
+[train_mlm] mlm_softcap=15.0 (<=0 = off) | train mask_prob=0.15
+[GPT_MLM.setup_optimizer] Muon body + AdamW heads (incl. projection_head). AdamW LR scale = 1.732051
+[train_mlm] pre-step checkpoint: experiments/mlm_memcheck/checkpoint.pt (15.09 MB)
+[train_mlm] periodic Probe 1 + VAL-MLM every 1000 steps -> experiments/mlm_memcheck/probe_trajectory.csv
+  step 0000 | MLM=8.3201 con=3.6083 total=8.3201 | distinct_samples=4 | dt=1594ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.2s; shape=(700, 256)
+  Coherence computed in 0.3s
+    AUC = 0.5171
+    delta_mean = +0.0003 (within 0.9876 vs between 0.9873)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step01000.json
+[mvt] step 1000 | wall 94s | probe1_auc=0.5171 | val_msk top1=0.1005 CE=6.5019 | TRAIN_msk top1=0.0952 CE=6.5232 | eval_dt=22.6s
+[mvt] NEW BEST AUC 0.5171 at step 1000 -> experiments/mlm_memcheck/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.5019 (top1=0.1005) at step 1000 -> experiments/mlm_memcheck/best_val.pt
+  step 2000 | MLM=5.5299 con=3.3932 total=5.5299 | distinct_samples=4 | dt=82ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.9s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5235
+    delta_mean = +0.0009 (within 0.9829 vs between 0.9820)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step02000.json
+[mvt] step 2000 | wall 185s | probe1_auc=0.5235 | val_msk top1=0.1060 CE=6.2798 | TRAIN_msk top1=0.1037 CE=6.3197 | eval_dt=20.7s
+[mvt] NEW BEST AUC 0.5235 at step 2000 -> experiments/mlm_memcheck/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.2798 (top1=0.1060) at step 2000 -> experiments/mlm_memcheck/best_val.pt
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5212
+    delta_mean = +0.0007 (within 0.9849 vs between 0.9842)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step03000.json
+[mvt] step 3000 | wall 277s | probe1_auc=0.5212 | val_msk top1=0.1083 CE=6.2906 | TRAIN_msk top1=0.1095 CE=6.2598 | eval_dt=21.7s
+  step 4000 | MLM=5.6704 con=3.4074 total=5.6704 | distinct_samples=4 | dt=87ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.8s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5194
+    delta_mean = +0.0011 (within 0.9739 vs between 0.9728)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step04000.json
+[mvt] step 4000 | wall 369s | probe1_auc=0.5194 | val_msk top1=0.1049 CE=6.3402 | TRAIN_msk top1=0.1167 CE=6.1355 | eval_dt=20.9s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5194
+    delta_mean = +0.0016 (within 0.9534 vs between 0.9518)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step05000.json
+[mvt] step 5000 | wall 460s | probe1_auc=0.5194 | val_msk top1=0.1049 CE=6.4312 | TRAIN_msk top1=0.1466 CE=5.8959 | eval_dt=21.0s
+  step 6000 | MLM=5.3720 con=3.4493 total=5.3720 | distinct_samples=4 | dt=88ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5199
+    delta_mean = +0.0025 (within 0.9277 vs between 0.9252)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step06000.json
+[mvt] step 6000 | wall 549s | probe1_auc=0.5199 | val_msk top1=0.1034 CE=6.5197 | TRAIN_msk top1=0.1693 CE=5.7423 | eval_dt=20.4s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5176
+    delta_mean = +0.0021 (within 0.9208 vs between 0.9187)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step07000.json
+[mvt] step 7000 | wall 639s | probe1_auc=0.5176 | val_msk top1=0.1057 CE=6.5548 | TRAIN_msk top1=0.1902 CE=5.5509 | eval_dt=20.4s
+  step 8000 | MLM=5.2836 con=3.6076 total=5.2836 | distinct_samples=4 | dt=89ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5136
+    delta_mean = +0.0019 (within 0.8977 vs between 0.8958)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step08000.json
+[mvt] step 8000 | wall 729s | probe1_auc=0.5136 | val_msk top1=0.1049 CE=6.5993 | TRAIN_msk top1=0.2008 CE=5.4169 | eval_dt=20.7s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5163
+    delta_mean = +0.0028 (within 0.8465 vs between 0.8437)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step09000.json
+[mvt] step 9000 | wall 818s | probe1_auc=0.5163 | val_msk top1=0.1041 CE=6.7056 | TRAIN_msk top1=0.2233 CE=5.2436 | eval_dt=19.9s
+  step 10000 | MLM=5.4602 con=3.6368 total=5.4602 | distinct_samples=4 | dt=89ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.0s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5148
+    delta_mean = +0.0027 (within 0.8311 vs between 0.8284)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step10000.json
+[mvt] step 10000 | wall 908s | probe1_auc=0.5148 | val_msk top1=0.1039 CE=6.7752 | TRAIN_msk top1=0.2370 CE=5.0796 | eval_dt=20.5s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.7s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5146
+    delta_mean = +0.0030 (within 0.7898 vs between 0.7869)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step11000.json
+[mvt] step 11000 | wall 997s | probe1_auc=0.5146 | val_msk top1=0.1018 CE=6.8709 | TRAIN_msk top1=0.2566 CE=4.9713 | eval_dt=20.3s
+  step 12000 | MLM=4.6636 con=3.5654 total=4.6636 | distinct_samples=4 | dt=89ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.8s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.5s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5139
+    delta_mean = +0.0026 (within 0.7666 vs between 0.7639)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step12000.json
+[mvt] step 12000 | wall 1086s | probe1_auc=0.5139 | val_msk top1=0.1020 CE=6.8886 | TRAIN_msk top1=0.2794 CE=4.8017 | eval_dt=20.0s
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.7s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5117
+    delta_mean = +0.0027 (within 0.7354 vs between 0.7328)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step13000.json
+[mvt] step 13000 | wall 1175s | probe1_auc=0.5117 | val_msk top1=0.1039 CE=7.0152 | TRAIN_msk top1=0.2836 CE=4.7849 | eval_dt=20.5s
+  step 14000 | MLM=4.8013 con=3.8008 total=4.8013 | distinct_samples=4 | dt=89ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_memcheck/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.2s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5133
+    delta_mean = +0.0032 (within 0.6832 vs between 0.6800)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_memcheck/probe1_step14000.json
+[mvt] step 14000 | wall 1265s | probe1_auc=0.5133 | val_msk top1=0.1013 CE=6.9098 | TRAIN_msk top1=0.2931 CE=4.6669 | eval_dt=21.9s
+[train_mlm] final checkpoint: experiments/mlm_memcheck/checkpoint.pt (15.09 MB)
+[train_mlm] step 0 losses: (8.320091247558594, 3.608335494995117)
+[train_mlm] last losses:   (4.430215358734131, 3.6322388648986816)

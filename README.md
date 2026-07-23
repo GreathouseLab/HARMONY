@@ -1,105 +1,211 @@
-# HARMONY
+# HARMONY — Microbiome Harmonizer
 
-Phase −1 feasibility study for HARMONY — a perception layer for microbiome data that turns raw sequencing reads into bias-corrected representations.
+Turning raw microbiome sequencing reads into **bias-corrected, cross-study-comparable representations.**
 
-## What this repo is
+---
 
-A causal-LM autoresearch loop, adapted for genomic FASTQ on macOS / MPS, used as the smallest experiment that can answer two questions about HARMONY before committing to Argonne A100 compute:
+## The problem
 
-1. Can language models learn meaningful patterns from raw microbiome reads at all?
-2. What is the empirical scaling slope (loss vs compute, à la Chinchilla)?
+Microbiome datasets from different studies are often incompatible, so researchers can't combine
+them, run cross-study analyses, or validate findings across cohorts. The incompatibility comes from
+**technical bias**:
 
-The full architectural vision (dual-head read-error-correction + community-level bias-correction, k-mer tokenization, etc.) lives in [ARCHITECTURE_V2_REDESIGN.md](ARCHITECTURE_V2_REDESIGN.md). The current Phase −1 status, open questions, and probe gate spec live in [program.md](program.md). The unmodified upstream `program.md` is preserved as [program_OG.md](program_OG.md) for reference.
+- sample collection & DNA extraction protocols
+- primer / 16S-region choice (V4 vs V3–V4 vs full-length)
+- sequencing platform (Illumina vs PacBio)
+- assay type (16S amplicon vs shotgun metagenomics)
 
-## Status (2026-04-29)
+**HARMONY's goal:** learn a representation that **removes technical bias while preserving biology**,
+so data from different studies/platforms can be merged. Because different primers/regions literally
+*observe different parts of the genome*, HARMONY works at the **sequence/read level** — the only level
+that can align across assays that don't share features (unlike abundance-table methods such as ComBat,
+MMUPHin, ConQuR).
 
-- **38 R1–R3 hyperparameter experiments** completed via the LLM-driven loop; best val_bpb = 1.932465 (R2 winner).
-- **Probe 4 (synthetic noise robustness)** run on four representative checkpoints, reported in [experiments/probe4_summary.md](experiments/probe4_summary.md). Across-checkpoint cosine similarity at 1% noise is *anti-correlated* with val_bpb. Per the gate in program.md §6, this points toward an MLM + contrastive arm rather than further val_bpb optimization — but Probes 1/2/3 are still needed for full evaluation, and they are blocked on the val-split disposition decision (see below).
-- **Reproducibility caveat.** Re-running each of the four chosen R1–R3 configs under seed=42 produced val_bpb drift averaging 0.008 bpb, with the relative ranking changing substantially. MPS run-to-run variance is on the same order as the val_bpb improvements being claimed; absolute val_bpb deltas <0.02 between runs should not be treated as load-bearing.
-- **Paired-end leakage fix** committed 2026-04-29 (`prepare_fastq.py`). The previous file-level train/val split could place R1 in train and R2 in val for the same molecule. New split is at sample-stem level, and paired reads now emit as one molecule per `<READ_START>` block via `<r1_seq> <PAIRED_END> <reverse_complement(r2_seq)>`. **All 38 historical val_bpb numbers are inflated by the prior leak; R4-and-onward is the new baseline.** Historical numbers are preserved in `experiments/results.csv` for provenance.
+> **Status:** research prototype. Phase −1 (can we model reads at all?) is complete and positive; the
+> harmonizer architecture is designed and the project is scaling up (Aurora) + acquiring the
+> multi-platform / mock-community data it needs. See
+> [HARMONY_STATUS_AURORA_HANDOFF.md](HARMONY_STATUS_AURORA_HANDOFF.md) for the full status.
+
+---
+
+## Phase −1 results — within-read masked language modeling
+
+**Metric:** MSK-DNA top-1 on held-out validation — mask a DNA chunk, is the model's single best guess
+right? Baselines: chance/unigram **0.092**; a non-learning count model (lookup table) **0.127**.
+
+The headline finding is a clean **capacity × data interaction** (all runs on a 630k-read cohort):
+
+| Model | Params | Val top-1 | Notes |
+|---|---|---|---|
+| depth-2 | 5M | 0.118 | data saturated at this size |
+| depth-4 | 41M | 0.165 | capacity unlock |
+| **depth-6** | **120M** | **0.175** | still rising when a 10 h wall stopped it |
+
+Conclusions: (1) **capacity and data are multiplicative** — neither moves the needle alone, which is
+why early single-variable sweeps looked flat and produced a *false* "ceiling"; (2) the model
+**generalizes, not memorizes** (validation ≥ train even at 120M params); (3) it's **well past** the
+non-learning baseline, so real within-read signal exists; (4) further scaling is **compute-bound** —
+hence the move to Aurora. A DNABERT-2 backbone was evaluated and found no better than our model on
+sample-level coherence (both near chance), which is a property of metagenomic reads, not of DNABERT-2.
+
+---
+
+## Harmonizer architecture (design)
+
+```
+16S reads (multi-platform)
+      │
+ [read encoder: DNABERT-2 (frozen) or our depth-6 MLM]
+      │  per-read embeddings
+ [attention / set pooling]              ← a sample = a SET of reads (permutation-invariant)
+      │
+      ├──► z_bio   (harmonized, batch-invariant)   ── OUTPUT
+      └──► z_tech  (the captured technical bias)
+```
+
+**Losses:** adversarial batch-invariance (gradient reversal — platform/primer/protocol unpredictable
+from `z_bio`); a technical head that *predicts* the metadata (sinks the bias into `z_tech`);
+reconstruction (prevents `z_bio` collapse); and **mock-community anchors** — the same known biology
+sequenced across platforms, which simultaneously supervise alignment, preserve biology, provide the
+evaluation ground truth, and act as the canary against over-correction (the central risk: erasing
+biology that correlates with batch).
+
+---
+
+## Installation
+
+Apple Silicon / MPS, a single NVIDIA GPU, or Intel Max GPU (Aurora). Python 3.12; [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync                      # runtime deps
+uv sync --group dev          # + pytest
+```
+
+Optional (DNABERT-2 comparison, isolated env recommended):
+```bash
+pip install torch "transformers>=4.38,<5" einops
+python dnabert2_setup.py     # downloads ~450MB, auto-patches the triton import, smoke-tests
+```
+
+---
+
+## Usage
+
+**Train the within-read MLM** (the current workhorse; writes checkpoints + a train-vs-val trajectory):
+```bash
+python train_mlm.py --out-dir experiments/myrun \
+  --depth 6 --aspect-ratio 192 --lam 0 \
+  --reads-cap 5000 --samples-per-batch 4 --reads-per-sample 8 --seq-len 64 \
+  --max-steps 40000 --eval-every 2000 --seed 42 \
+  --mlm-softcap 15 --mask-prob 0.15 --max-runtime-hours 10
+```
+Key flags: `--depth`/`--aspect-ratio` (model size), `--reads-cap` (reads kept per sample = data volume),
+`--lam` (contrastive weight; 0 = pure MLM), `--mlm-softcap`/`--mask-prob` (sweepable). Every
+`--eval-every` steps it logs **val and train** MSK-DNA top-1/top-5/CE and saves `best_val.pt`.
+
+**Diagnostics & baselines:**
+```bash
+python kmer_markov_baseline.py     # non-neural count-model floor
+python nn_vs_markov_diag.py        # neighbor-corruption diagnostic
+python vanilla_encoder_mlm.py      # off-the-shelf nn.TransformerEncoder control
+```
+
+**Dashboards & decoded predictions** (self-contained HTML):
+```bash
+python build_dashboard.py          # experiments/dashboard.html (whole investigation)
+python dashboard_run.py            # experiments/dashboard_run_depth6.html (single run)
+VIZ_CHECKPOINT=experiments/myrun/checkpoint.pt VIZ_OUT_HTML=experiments/myrun/decoded.html \
+  VIZ_DEPTH=6 VIZ_ASPECT=192 python decoded_visualizer.py   # per-read colored top-1/top-5 view
+```
+
+---
+
+## Running on Aurora (Intel Max GPU / oneAPI)
+
+Aurora (ANL) uses **Intel Data Center GPU Max ("Ponte Vecchio")** via oneAPI, exposed in PyTorch as the
+**`xpu`** device. HARMONY is device-abstracted for it.
+
+**Device selection — [device_utils.py](device_utils.py).** Autodetects in order **`xpu → cuda → mps →
+cpu`**; override anywhere with the environment variable:
+```bash
+HARMONY_DEVICE=xpu python train_mlm.py ...      # force a backend (xpu|cuda|mps|cpu)
+python device_utils.py                          # prints the detected device banner
+```
+It also provides device-agnostic `empty_cache`, `synchronize`, and `manual_seed_all`. All training,
+eval, and diagnostic scripts use it — no hardcoded `mps`/`cuda` anywhere in the active path. On
+torch ≥ 2.5, `torch.xpu` is native; older oneAPI stacks are handled by an opportunistic
+`import intel_extension_for_pytorch`.
+
+**Validate after allocation** (numerics regression — expect step-0 loss ≈ **8.317**):
+```bash
+HARMONY_DEVICE=xpu python train_mlm.py --out-dir experiments/_xpu_check \
+  --depth 2 --aspect-ratio 128 --lam 0 --max-steps 200 --eval-every 0 \
+  --reads-cap 50 --seed 42 --max-runtime-hours 1
+```
+
+**Known port issue — bfloat16.** `model.py` runs token/value embeddings and rotary in **bf16** while
+linear weights stay fp32. MPS and CUDA auto-promote that mixed matmul; **CPU rejects it**
+(`BFloat16 != float`). Intel Max GPUs support bf16, so it should work on `xpu` as on MPS/CUDA — but
+**validate on hardware.** CPU-only debugging (e.g., login nodes) would require an explicit fp32 mode
+(a small, deliberate `model.py` change, not yet made).
+
+**Remaining port tasks:** validate bf16 + the Muon optimizer + the custom bidirectional-attention path
+on XPU; add DDP multi-GPU / multi-node scaling (currently single-device); confirm toolchain versions
+against current ANL Aurora docs. Details in
+[HARMONY_STATUS_AURORA_HANDOFF.md](HARMONY_STATUS_AURORA_HANDOFF.md).
+
+---
 
 ## Data pipeline
 
 ```
-  FASTQ (.fastq.gz)
-       │
-       ▼  prepare_fastq.py     paired-end aware; sample-stem split; <PAIRED_END> joining
-  output/{train,val}.txt
-       │
-       ▼  prepare_genomic.py   BPE tokenizer, dataloader, BPB evaluation
-  ~/.cache/autoresearch/
-       │
-       ▼  train.py             single-file GPT trainer (5-minute wall budget)
-  val_bpb + experiments/<run>/checkpoint.pt
-       │
-       ▼  evaluate_probes.py   frozen-checkpoint representation probes (Probe 4 only for now)
-  experiments/probe_*.csv, probe_*_summary.md
+FASTQ (.fastq.gz)
+   │  prepare_fastq.py     paired-end aware; sample-stem split; R1 + <PAIRED_END> + revcomp(R2)
+output/{train,val}.txt
+   │  prepare_genomic.py   BPE tokenizer (vocab 4096 + [MASK]=4096), dataloader
+   │  paired_data_loader.py  sample-aware batching (K samples × M reads)
+train_mlm.py               bidirectional MLM (+ optional InfoNCE contrastive) trainer
 ```
 
-## Quick start
+**Current data & the gap.** `output/train.txt` is one study (`SRR6915091`–`SRR6915230`, 140 samples,
+single platform, paired-end). The harmonizer needs **multi-platform data + mock communities with known
+composition** — acquiring these is the top non-compute priority (candidates: ZymoBIOMICS/ATCC mock
+standards across platforms, MBQC, mockrobiota).
 
-Apple Silicon / MPS or a single NVIDIA GPU; Python 3.10+; [uv](https://docs.astral.sh/uv/).
+---
 
-```bash
-uv sync                                                          # install runtime deps
-uv sync --group dev                                              # add pytest
-
-uv run prepare_fastq.py --input-dir <fastq_dir> --output-dir output
-uv run prepare_genomic.py                                        # train BPE tokenizer
-uv run train.py                                                  # 5-minute run; saves checkpoint if HARMONY_CHECKPOINT_PATH set
-
-uv run pytest tests/ -v                                          # unit tests
-```
-
-## Autoresearch loop
-
-`autoresearch_llm.py` proposes hyperparameter configurations via Claude Sonnet, runs `train.py` with a 5-minute time budget, fast-fails any run whose first 3 post-warmup steps average >8 s (saves ~14 min per doomed config on MPS), and appends results to `experiments/results.csv`. Each subprocess gets `HARMONY_CHECKPOINT_PATH` set so checkpoints are written automatically for downstream probing.
-
-```bash
-ANTHROPIC_API_KEY=...  uv run autoresearch_llm.py --max-experiments 12
-```
-
-## Probe gate
-
-`evaluate_probes.py` consumes saved checkpoints and runs frozen-weight probes:
-
-- **Probe 4 — noise robustness** (implemented). Sample 1000 val reads, generate noisy versions at 0.5/1/5% substitution rate at the DNA-sequence level (pre-tokenization), embed clean and noisy via mean-pool over DNA token positions, report cosine similarity per checkpoint × error rate.
-- **Probes 1, 2, 3** (deferred). Require resolving the val-split disposition (program.md §5 Concern 2) and producing a read→sample provenance index for the val stream. See [program.md §6](program.md) for the full gate spec.
-
-```bash
-uv run evaluate_probes.py            # probe 4 across checkpoints listed in the script
-```
-
-## Repo layout
+## Repository layout
 
 ```
+train_mlm.py                 bidirectional MLM trainer (val+train eval hook, best_val.pt, sweepable)
+model.py                     GPT, MuonAdamW, bidirectional attention (importable)
+paired_data_loader.py        sample-aware paired-read batching
 prepare_fastq.py             FASTQ → text stream (paired-end aware, sample-stem split)
-prepare_genomic.py           BPE tokenizer, dataloader, evaluation
-train.py                     single-file GPT trainer (5-min wall budget)
-model.py                     GPT, MuonAdamW, helpers (importable)
-autoresearch_llm.py          Claude-driven hyperparameter loop
-evaluate_probes.py           frozen-checkpoint representation probes (Probe 4)
-reproduce_checkpoints.py     one-shot orchestrator for re-running historical winners
+prepare_genomic.py           BPE tokenizer, dataloader
+device_utils.py              device abstraction: xpu / cuda / mps / cpu   ← Aurora port
+dnabert2_setup.py            verified DNABERT-2 loader for Apple Silicon (triton patch)
 
-program.md                   current Phase −1 status, probe gate, open questions
-program_OG.md                unmodified upstream program.md (preserved for reference)
-ARCHITECTURE_V2_REDESIGN.md  broader HARMONY architecture vision
+kmer_markov_baseline.py      non-neural count-model floor
+nn_vs_markov_diag.py         neighbor-corruption diagnostic
+vanilla_encoder_mlm.py       off-the-shelf nn.TransformerEncoder control
+probe_sample_coherence.py    Probe-1 sample-coherence (ROC-AUC)
 
-experiments/                 per-run logs, results.csv, probe outputs
-tests/                       pytest suite (currently: prepare_fastq.py — 33 tests)
+build_dashboard.py           whole-investigation Tufte dashboard
+dashboard_run.py             single-run dashboard
+decoded_visualizer.py        per-read colored decoded-prediction view (size-configurable)
+
+experiments/                 per-run checkpoints, trajectories, dashboards, JSON results
+tests/                       pytest suite
+HARMONY_STATUS_AURORA_HANDOFF.md   full status + Aurora port notes
+ARCHITECTURE_V2_REDESIGN.md / ARCHITECTURE_V3_UNIFIED.md   architecture vision
 ```
 
-## Lineage
+---
 
-Forked from [miolini/autoresearch-macos](https://github.com/miolini/autoresearch-macos), itself a macOS / MPS adaptation of [karpathy/autoresearch](https://github.com/karpathy/autoresearch). The original autoresearch single-file architecture is preserved here; HARMONY-specific work is concentrated in the data pipeline (`prepare_fastq.py`, `prepare_genomic.py`), the LLM-driven loop (`autoresearch_llm.py`), the probe driver (`evaluate_probes.py`), and the new `program.md`.
+## Lineage & License
 
-To pull future upstream fixes:
+Forked from [miolini/autoresearch-macos](https://github.com/miolini/autoresearch-macos), a macOS/MPS
+adaptation of [karpathy/autoresearch](https://github.com/karpathy/autoresearch). HARMONY-specific work
+is the data pipeline, the MLM/contrastive trainer, the diagnostics, and the harmonizer design.
 
-```bash
-git fetch upstream
-git merge upstream/master   # `upstream` remote already wired to miolini/autoresearch-macos
-```
-
-## License
-
-MIT, inherited from the upstream autoresearch-macos and karpathy/autoresearch projects.
+**MIT**, inherited from the upstream projects.

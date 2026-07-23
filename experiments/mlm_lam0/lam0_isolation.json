@@ -1,0 +1,85 @@
+{
+  "checkpoint": "experiments/mlm_lam0/checkpoint.pt",
+  "checkpoint_step": 19999,
+  "training": {
+    "args_changed_from_mvt": {
+      "--lam": "1.0 -> 0"
+    },
+    "args_replicated_from_mvt": {
+      "--max-steps": 20000,
+      "--eval-every": 2000,
+      "--max-runtime-hours": 12,
+      "--log-every": 200,
+      "--samples-per-batch": 4,
+      "--reads-per-sample": 8,
+      "--reads-cap": 200,
+      "--seq-len": 64,
+      "--depth": 2,
+      "--aspect-ratio": 128,
+      "--seed": 42
+    },
+    "step_0_losses": [
+      8.317410469055176,
+      3.584345817565918
+    ],
+    "step_final_losses": [
+      5.508772373199463,
+      3.528231143951416
+    ],
+    "wall_clock_estimate": "~24 minutes (clean, no thermal throttling)"
+  },
+  "decode_eval": {
+    "n_val_reads": 700,
+    "n_total_masked_positions": 4745,
+    "branch_counts": {
+      "MSK": 3761,
+      "KEEP": 493,
+      "RAND": 491
+    },
+    "excluded_token_ids": [
+      4090,
+      4091,
+      4092,
+      4093,
+      4094,
+      4095,
+      4096
+    ],
+    "excluded_token_names": [
+      "<|bos|>",
+      "<SAMPLE_START>",
+      "<SAMPLE_END>",
+      "<READ_START>",
+      "<READ_END>",
+      "<PAIRED_END>",
+      "[MASK]"
+    ],
+    "msk_dna_n_positions": 3761,
+    "msk_dna_top1": 0.10901356022334485,
+    "msk_dna_top5": 0.15208721084817867,
+    "msk_dna_ce_nats": 6.270091635167998
+  },
+  "comparison": {
+    "unigram_baseline": {
+      "top1": 0.0923,
+      "ce_nats": 6.7304
+    },
+    "mvt_lam_1.0": {
+      "top1": 0.1085,
+      "top5": 0.1547,
+      "training_mlm_ce_at_step_19999": 5.7094
+    },
+    "lam_0": {
+      "top1": 0.10901356022334485,
+      "top5": 0.15208721084817867,
+      "ce_nats": 6.270091635167998
+    },
+    "lam0_gap_top1_minus_unigram": 0.01671356022334486,
+    "mvt_gap_top1_minus_unigram": 0.016200000000000006,
+    "delta_lam0_minus_mvt_top1": 0.0005135602233448527
+  },
+  "verdict": {
+    "label": "neutral",
+    "interpretation": "Pure MLM \u2248 MVT on MSK-DNA top-1 \u2014 contrastive was neither helping nor hurting MLM within-read prediction."
+  }
+}

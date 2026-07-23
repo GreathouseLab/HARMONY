@@ -36,6 +36,8 @@ from datetime import datetime
 from pathlib import Path
 
 import anthropic
+from anthropic import APIConnectionError
+from anthropic._exceptions import OverloadedError  # 529, not re-exported at top level
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -94,6 +96,37 @@ PRICING = {
     "claude-haiku-4-5-20251001": {"input": 1.00, "output": 5.00},
     "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
 }
+
+# ---------------------------------------------------------------------------
+# Joint score (selection criterion as of 2026-05-07)
+# ---------------------------------------------------------------------------
+
+def compute_joint_score(result):
+    """joint_score = val_bpb − 5.0 × (probe1_auc − 0.5). Lower is better.
+
+    Missing probe1_auc is treated as 0.5 (neutral) so legacy runs without a
+    probe still rank by val_bpb alone. Returns None if val_bpb is missing.
+    """
+    vb = result.get("val_bpb")
+    if vb in (None, "", "None"):
+        return None
+    try:
+        vb = float(vb)
+    except (TypeError, ValueError):
+        return None
+    auc = result.get("probe1_auc")
+    if auc in (None, "", "None"):
+        return vb
+    try:
+        return vb - 5.0 * (float(auc) - 0.5)
+    except (TypeError, ValueError):
+        return vb
+
+
+def _joint_score_sort_key(result):
+    js = compute_joint_score(result)
+    return js if js is not None else float("inf")
+
 
 # ---------------------------------------------------------------------------
 # Hyperparameter config (what Claude can modify)
@@ -401,9 +434,9 @@ CSV_FIELDS = [
     "val_bpb", "num_params_M", "num_steps", "total_tokens_M",
     "training_seconds", "peak_vram_mb", "mfu_percent",
     "wall_time", "timestamp", "error",
-    # Probe 1 (sample-coherence ROC-AUC, higher = better) — diagnostic only;
-    # selection criterion remains val_bpb. See experiments/probes_r4_summary.md
-    # for why we track AUC alongside.
+    # Probe 1 (sample-coherence ROC-AUC, higher = better). Selection criterion
+    # since 2026-05-07 is joint_score = val_bpb − 5.0×(probe1_auc−0.5), computed
+    # on the fly via compute_joint_score(). See experiments/probes_r4_summary.md.
     "probe1_auc", "probe1_dmean",
 ]
 
@@ -457,36 +490,74 @@ def load_all_results():
 # Claude API integration
 # ---------------------------------------------------------------------------
 
+def _api_call_with_retry(client, max_retries=5, **kwargs):
+    """client.messages.create with exponential backoff on transient errors
+    (HTTP 529 OverloadedError, APIConnectionError). 5 retries, ~62s max wait.
+    Added 2026-05-13 after a 529 mid-loop crashed an autoresearch run."""
+    for attempt in range(max_retries + 1):
+        try:
+            return client.messages.create(**kwargs)
+        except (OverloadedError, APIConnectionError) as e:
+            if attempt == max_retries:
+                raise
+            delay = 2 ** (attempt + 1)  # 2, 4, 8, 16, 32s
+            print(f"  [API] Transient {type(e).__name__}: {e}. "
+                  f"Retry {attempt+1}/{max_retries} in {delay}s…")
+            time.sleep(delay)
+
+
 SYSTEM_PROMPT = """You are an AI research scientist optimizing a genomic language model.
 
 You are part of an automated research loop:
 1. You analyze past experiment results
 2. You propose ONE new hyperparameter configuration to try
-3. The system runs a 5-minute training experiment and reports val_bpb (bits per byte, lower is better)
-4. Repeat
+3. The system runs a 5-minute training experiment and reports val_bpb AND probe1_auc
+4. The system computes joint_score = val_bpb − 5.0 × (probe1_auc − 0.5)
+5. Repeat
+
+OBJECTIVE (CHANGED 2026-05-07):
+- Minimize joint_score = val_bpb − 5.0 × (probe1_auc − 0.5). Lower is better.
+- val_bpb is bits per byte (lower = better LM fit).
+- probe1_auc is sample-coherence ROC-AUC (~0.50 = chance, higher = more sample-discriminating embeddings).
+- Joint scoring rewards good val_bpb AND high sample-coherence simultaneously.
+
+
+CALIBRATION ANCHORS:
+- r49 (val_bpb champion): val_bpb=1.911, probe1_auc=0.520, joint_score=1.811
+- r34_deeper_depth6 (probe1_auc champion): val_bpb=1.947, probe1_auc=0.5255, joint_score=1.819
+- These two are nearly tied under joint_score — that is the inflection point.
+- 0.01 gain in probe1_auc ≈ 0.05 reduction in val_bpb (worth-it threshold).
+
+AVOID THIS BASIN (R5 36/50 confirmed it's exhausted, including all window-pattern variants):
+- DEPTH=2 with ASPECT_RATIO=128 in ANY WINDOW_PATTERN configuration (L, S, SL, SSL all tried)
+- TOTAL_BATCH_SIZE=32k with WARMDOWN_RATIO=0.7
+- These configurations cluster around joint_score ~1.81 with probe1_auc ~0.52 — they represent a local minimum of val_bpb at the cost of community discrimination collapse.
+- The objective is NOT to mine variants of this basin further. We need configs OUTSIDE it.
+
+SPECIFICALLY EXPLORE (underrepresented in n=49):
+- Deeper models: DEPTH ∈ {{6, 8}}. Remember DEVICE_BATCH_SIZE=8 for DEPTH>=6.
+- Wider models: ASPECT_RATIO ∈ {{96, 128}} (model_dim = DEPTH × ASPECT_RATIO, rounded up to HEAD_DIM=128 multiple — e.g. DEPTH=4×ASPECT_RATIO=128 → model_dim=512).
+- Sliding-window attention: WINDOW_PATTERN='S' (biologically grounded for short reads; never tried).
+- Longer warmup: WARMUP_RATIO ∈ {{0.05, 0.10}}.
 
 HARDWARE CONSTRAINTS (critical — violating these wastes an experiment):
 - Apple Silicon Mac with 22GB MPS memory
 - DEPTH >= 6 MUST use DEVICE_BATCH_SIZE=8 (otherwise OOM)
 - DEPTH >= 10 will likely OOM even with batch_size=4 — avoid
-- Deeper models (DEPTH >= 6) take much longer for evaluation (~20+ min total wall time)
-- Each experiment has a 40-minute timeout — if startup + training + eval exceeds this, it times out
+- Deeper models (DEPTH >= 6) take much longer (~20+ min total wall time)
+- Each experiment has a 40-minute timeout
 
 AVAILABLE HYPERPARAMETERS:
 {hyperparams_json}
 
 GUIDELINES:
-- Optimize val_bpb (lower is better) — that's the selection metric.
-- We also report probe1_auc (sample-coherence ROC-AUC, ~0.50 = chance, higher = more
-  sample-discriminating embeddings). This is diagnostic, not the optimization target —
-  but on prior R4 data, val_bpb-best models had the LOWEST probe1_auc (representational
-  collapse). If you can find a config that improves val_bpb AND raises probe1_auc above
-  the current ~0.522 ceiling, that's a strong signal — call it out in your reasoning.
-- Change 1-3 hyperparameters at a time to understand what works
-- Learn from failures: OOM means too large, TIMEOUT means too slow on this hardware
+- Change 1-3 hyperparameters at a time
+- Learn from failures: OOM means too large, TIMEOUT means too slow
 - The genomic data is DNA sequences (A/C/G/T/N) with special tokens — very different from NLP
-- DNA has ~2 bits/base of entropy, so val_bpb near 2.0 is approaching theoretical limits
-- Be bold but learn from mistakes — don't repeat failed configurations
+- DNA has ~2 bits/base of theoretical entropy, but BPE compression and corpus-specific structure can push val_bpb below 2.0 (r49 at 1.911 demonstrates this; the 2.0 figure is not a hard floor)
+- Be bold — the val_bpb basin is well-mapped, explore underexplored regions
+- Don't repeat failed configurations
+- The history below is biased toward val_bpb-corner configs; apply joint_score weighting when reading it, don't just imitate past patterns
 
 RESPONSE FORMAT:
 You MUST respond with a JSON object (and nothing else) in this exact format:
@@ -494,25 +565,26 @@ You MUST respond with a JSON object (and nothing else) in this exact format:
     "name": "short_experiment_name",
     "description": "one line explaining the hypothesis",
     "overrides": {{"PARAM_NAME": value, ...}},
-    "reasoning": "2-3 sentences on why this might improve val_bpb based on past results"
+    "reasoning": "2-3 sentences on why this might improve joint_score, citing past results"
 }}
-
 Do NOT include any text before or after the JSON object."""
 
 
 def build_results_summary(results):
     """Format experiment history for Claude."""
-    lines = ["EXPERIMENT HISTORY (sorted by val_bpb, best first):\n"]
+    lines = ["EXPERIMENT HISTORY (sorted by joint_score, best first):\n"]
 
     ok_results = [r for r in results if r.get("status") == "OK" and r.get("val_bpb")]
-    ok_results.sort(key=lambda r: float(r["val_bpb"]))
+    ok_results.sort(key=_joint_score_sort_key)
 
     for r in ok_results:
         vram = r.get("peak_vram_mb") or "?"
         auc = r.get("probe1_auc")
         auc_str = f"{float(auc):.4f}" if auc not in (None, "", "None") else "n/a"
+        js = compute_joint_score(r)
+        js_str = f"{js:.4f}" if js is not None else "n/a"
         lines.append(
-            f"  {r['name']}: val_bpb={r['val_bpb']} | probe1_auc={auc_str} | "
+            f"  {r['name']}: joint_score={js_str} | val_bpb={r['val_bpb']} | probe1_auc={auc_str} | "
             f"params={r.get('num_params_M', '?')}M | "
             f"steps={r.get('num_steps', '?')} | "
             f"vram_mb={vram} | "
@@ -532,7 +604,16 @@ def build_results_summary(results):
             )
 
     lines.append(f"\nTotal experiments run: {len(results)}")
-    lines.append(f"Best val_bpb so far: {ok_results[0]['val_bpb'] if ok_results else 'N/A'}")
+    if ok_results:
+        best_js = compute_joint_score(ok_results[0])
+        best_js_str = f"{best_js:.4f}" if best_js is not None else "N/A"
+        lines.append(
+            f"Best joint_score so far: {best_js_str} "
+            f"(name={ok_results[0]['name']}, val_bpb={ok_results[0]['val_bpb']}, "
+            f"probe1_auc={ok_results[0].get('probe1_auc', 'n/a')})"
+        )
+    else:
+        lines.append("Best joint_score so far: N/A")
 
     return "\n".join(lines)
 
@@ -551,11 +632,12 @@ Based on these results, propose ONE new experiment to try. Remember:
 - DEPTH >= 6 needs DEVICE_BATCH_SIZE=8
 - DEPTH >= 10 will OOM — avoid
 - Don't repeat configurations that already failed
-- Focus on lowering val_bpb
+- Focus on lowering joint_score = val_bpb − 5.0 × (probe1_auc − 0.5) (not val_bpb alone)
 
 Respond with ONLY a JSON object."""
 
-    response = client.messages.create(
+    response = _api_call_with_retry(
+        client,
         model=model,
         max_tokens=1024,
         system=system,
@@ -698,8 +780,14 @@ def main():
         # Report progress
         ok_results = [r for r in results if r.get("status") == "OK" and r.get("val_bpb")]
         if ok_results:
-            best = min(ok_results, key=lambda r: float(r["val_bpb"]))
-            print(f"\n  Current best: {best['name']} with val_bpb = {best['val_bpb']}")
+            best = min(ok_results, key=_joint_score_sort_key)
+            best_js = compute_joint_score(best)
+            best_js_str = f"{best_js:.4f}" if best_js is not None else "n/a"
+            best_auc = best.get("probe1_auc")
+            best_auc_str = (f"{float(best_auc):.4f}"
+                            if best_auc not in (None, "", "None") else "n/a")
+            print(f"\n  Current best: {best['name']} with joint_score = {best_js_str} "
+                  f"(val_bpb={best['val_bpb']}, probe1_auc={best_auc_str})")
 
     # Final summary
     print(f"\n{'='*70}")
@@ -712,11 +800,21 @@ def main():
 
     ok_results = [r for r in results if r.get("status") == "OK" and r.get("val_bpb")]
     if ok_results:
-        ok_results.sort(key=lambda r: float(r["val_bpb"]))
-        print(f"\nTop 5 results:")
+        ok_results.sort(key=_joint_score_sort_key)
+        print(f"\nTop 5 results (by joint_score):")
         for i, r in enumerate(ok_results[:5]):
-            print(f"  {i+1}. {r['name']}: val_bpb={r['val_bpb']} | overrides={r.get('overrides', '{}')}")
-        print(f"\nBEST: {ok_results[0]['name']} with val_bpb = {ok_results[0]['val_bpb']}")
+            js = compute_joint_score(r)
+            js_str = f"{js:.4f}" if js is not None else "n/a"
+            auc = r.get("probe1_auc")
+            auc_str = (f"{float(auc):.4f}"
+                       if auc not in (None, "", "None") else "n/a")
+            print(f"  {i+1}. {r['name']}: joint_score={js_str} | "
+                  f"val_bpb={r['val_bpb']} | probe1_auc={auc_str} | "
+                  f"overrides={r.get('overrides', '{}')}")
+        best_js = compute_joint_score(ok_results[0])
+        best_js_str = f"{best_js:.4f}" if best_js is not None else "n/a"
+        print(f"\nBEST: {ok_results[0]['name']} with joint_score = {best_js_str} "
+              f"(val_bpb={ok_results[0]['val_bpb']})")
 
     print(f"\nFull results: {RESULTS_CSV}")
 

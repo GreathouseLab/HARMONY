@@ -1,0 +1,500 @@
+[train_mlm] device: mps
+[train_mlm] tokenizer vocab_size=4096; extending to 4097 (added [MASK]=4096)
+[paired_loader] path: output/train.txt
+[paired_loader] parsed 126 samples, 25200 reads (dropped 0 reads > seq_len=64 tokens)
+[paired_loader] batch recipe: K=4 samples × M=8 reads = batch size 32
+[paired_loader] pad token id=4090 (<|bos|>) — never a mask candidate
+[train_mlm] model: depth=4 n_embd=768 params=41.13M
+[GPT_MLM.setup_optimizer] Muon body + AdamW heads (incl. projection_head). AdamW LR scale = 1.000000
+[train_mlm] pre-step checkpoint: experiments/mlm_big/checkpoint.pt (145.65 MB)
+[train_mlm] periodic Probe 1 every 2000 steps -> experiments/mlm_big/probe_trajectory.csv
+  step 0000 | MLM=8.3221 con=3.5619 total=8.3221 | distinct_samples=4 | dt=3110ms/step (cum)
+  step 0200 | MLM=6.3992 con=3.4372 total=6.3992 | distinct_samples=4 | dt=333ms/step (cum)
+  step 0400 | MLM=5.9517 con=3.4154 total=5.9517 | distinct_samples=4 | dt=324ms/step (cum)
+  step 0600 | MLM=5.7844 con=3.4316 total=5.7844 | distinct_samples=4 | dt=322ms/step (cum)
+  step 0800 | MLM=6.1070 con=3.4288 total=6.1070 | distinct_samples=4 | dt=320ms/step (cum)
+  step 1000 | MLM=6.1783 con=3.4194 total=6.1783 | distinct_samples=4 | dt=320ms/step (cum)
+  step 1200 | MLM=5.9276 con=3.4254 total=5.9276 | distinct_samples=4 | dt=318ms/step (cum)
+  step 1400 | MLM=5.7806 con=3.4360 total=5.7806 | distinct_samples=4 | dt=317ms/step (cum)
+  step 1600 | MLM=5.5407 con=3.4367 total=5.5407 | distinct_samples=4 | dt=317ms/step (cum)
+  step 1800 | MLM=5.4873 con=3.4304 total=5.4873 | distinct_samples=4 | dt=316ms/step (cum)
+  step 2000 | MLM=5.6865 con=3.4253 total=5.6865 | distinct_samples=4 | dt=316ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 9.2s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5199
+    delta_mean = +0.0002 (within 0.9929 vs between 0.9927)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step02000.json
+[mvt] step 2000 | wall 643s | probe1_auc=0.5199 | eval_dt=11.1s
+[mvt] NEW BEST AUC 0.5199 at step 2000 -> experiments/mlm_big/best.pt
+  step 2200 | MLM=5.8798 con=3.4355 total=5.8798 | distinct_samples=4 | dt=321ms/step (cum)
+  step 2400 | MLM=5.7853 con=3.4383 total=5.7853 | distinct_samples=4 | dt=321ms/step (cum)
+  step 2600 | MLM=5.4110 con=3.4359 total=5.4110 | distinct_samples=4 | dt=320ms/step (cum)
+  step 2800 | MLM=5.5171 con=3.4266 total=5.5171 | distinct_samples=4 | dt=320ms/step (cum)
+  step 3000 | MLM=5.8794 con=3.4315 total=5.8794 | distinct_samples=4 | dt=319ms/step (cum)
+  step 3200 | MLM=5.3977 con=3.4329 total=5.3977 | distinct_samples=4 | dt=319ms/step (cum)
+  step 3400 | MLM=5.7906 con=3.4194 total=5.7906 | distinct_samples=4 | dt=319ms/step (cum)
+  step 3600 | MLM=5.6549 con=3.4372 total=5.6549 | distinct_samples=4 | dt=318ms/step (cum)
+  step 3800 | MLM=5.8195 con=3.4292 total=5.8195 | distinct_samples=4 | dt=318ms/step (cum)
+  step 4000 | MLM=5.3952 con=3.4376 total=5.3952 | distinct_samples=4 | dt=318ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.3s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5184
+    delta_mean = +0.0004 (within 0.9874 vs between 0.9871)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step04000.json
+[mvt] step 4000 | wall 1282s | probe1_auc=0.5184 | eval_dt=10.2s
+  step 4200 | MLM=5.5907 con=3.4384 total=5.5907 | distinct_samples=4 | dt=320ms/step (cum)
+  step 4400 | MLM=5.5643 con=3.4419 total=5.5643 | distinct_samples=4 | dt=320ms/step (cum)
+  step 4600 | MLM=5.3843 con=3.4121 total=5.3843 | distinct_samples=4 | dt=320ms/step (cum)
+  step 4800 | MLM=5.9511 con=3.4423 total=5.9511 | distinct_samples=4 | dt=319ms/step (cum)
+  step 5000 | MLM=5.4128 con=3.4352 total=5.4128 | distinct_samples=4 | dt=319ms/step (cum)
+  step 5200 | MLM=5.3597 con=3.4426 total=5.3597 | distinct_samples=4 | dt=318ms/step (cum)
+  step 5400 | MLM=5.5500 con=3.4275 total=5.5500 | distinct_samples=4 | dt=318ms/step (cum)
+  step 5600 | MLM=5.5420 con=3.4381 total=5.5420 | distinct_samples=4 | dt=318ms/step (cum)
+  step 5800 | MLM=5.6588 con=3.4325 total=5.6588 | distinct_samples=4 | dt=317ms/step (cum)
+  step 6000 | MLM=5.4007 con=3.4357 total=5.4007 | distinct_samples=4 | dt=317ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.7s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5202
+    delta_mean = +0.0003 (within 0.9876 vs between 0.9872)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step06000.json
+[mvt] step 6000 | wall 1912s | probe1_auc=0.5202 | eval_dt=9.6s
+[mvt] NEW BEST AUC 0.5202 at step 6000 -> experiments/mlm_big/best.pt
+  step 6200 | MLM=5.6572 con=3.4301 total=5.6572 | distinct_samples=4 | dt=318ms/step (cum)
+  step 6400 | MLM=5.5467 con=3.4398 total=5.5467 | distinct_samples=4 | dt=318ms/step (cum)
+  step 6600 | MLM=5.9430 con=3.4328 total=5.9430 | distinct_samples=4 | dt=318ms/step (cum)
+  step 6800 | MLM=5.2203 con=3.4356 total=5.2203 | distinct_samples=4 | dt=318ms/step (cum)
+  step 7000 | MLM=5.7577 con=3.4175 total=5.7577 | distinct_samples=4 | dt=318ms/step (cum)
+  step 7200 | MLM=5.3926 con=3.4365 total=5.3926 | distinct_samples=4 | dt=318ms/step (cum)
+  step 7400 | MLM=5.5029 con=3.4406 total=5.5029 | distinct_samples=4 | dt=318ms/step (cum)
+  step 7600 | MLM=5.4950 con=3.4402 total=5.4950 | distinct_samples=4 | dt=318ms/step (cum)
+  step 7800 | MLM=5.3174 con=3.4450 total=5.3174 | distinct_samples=4 | dt=318ms/step (cum)
+  step 8000 | MLM=5.5400 con=3.4100 total=5.5400 | distinct_samples=4 | dt=318ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5181
+    delta_mean = +0.0006 (within 0.9789 vs between 0.9783)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step08000.json
+[mvt] step 8000 | wall 2551s | probe1_auc=0.5181 | eval_dt=10.5s
+  step 8200 | MLM=5.0642 con=3.4193 total=5.0642 | distinct_samples=4 | dt=319ms/step (cum)
+  step 8400 | MLM=5.6024 con=3.4206 total=5.6024 | distinct_samples=4 | dt=319ms/step (cum)
+  step 8600 | MLM=5.0330 con=3.4392 total=5.0330 | distinct_samples=4 | dt=318ms/step (cum)
+  step 8800 | MLM=4.9575 con=3.4287 total=4.9575 | distinct_samples=4 | dt=318ms/step (cum)
+  step 9000 | MLM=5.4035 con=3.4394 total=5.4035 | distinct_samples=4 | dt=318ms/step (cum)
+  step 9200 | MLM=4.9823 con=3.4550 total=4.9823 | distinct_samples=4 | dt=318ms/step (cum)
+  step 9400 | MLM=5.2071 con=3.4352 total=5.2071 | distinct_samples=4 | dt=318ms/step (cum)
+  step 9600 | MLM=5.3778 con=3.4375 total=5.3778 | distinct_samples=4 | dt=318ms/step (cum)
+  step 9800 | MLM=5.1953 con=3.4422 total=5.1953 | distinct_samples=4 | dt=318ms/step (cum)
+  step 10000 | MLM=5.2198 con=3.4453 total=5.2198 | distinct_samples=4 | dt=318ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.3s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5187
+    delta_mean = +0.0008 (within 0.9686 vs between 0.9678)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step10000.json
+[mvt] step 10000 | wall 3189s | probe1_auc=0.5187 | eval_dt=10.1s
+  step 10200 | MLM=5.5320 con=3.4479 total=5.5320 | distinct_samples=4 | dt=319ms/step (cum)
+  step 10400 | MLM=5.0373 con=3.4423 total=5.0373 | distinct_samples=4 | dt=319ms/step (cum)
+  step 10600 | MLM=5.3106 con=3.4386 total=5.3106 | distinct_samples=4 | dt=319ms/step (cum)
+  step 10800 | MLM=5.0588 con=3.4211 total=5.0588 | distinct_samples=4 | dt=319ms/step (cum)
+  step 11000 | MLM=5.2759 con=3.4567 total=5.2759 | distinct_samples=4 | dt=319ms/step (cum)
+  step 11200 | MLM=4.8255 con=3.4317 total=4.8255 | distinct_samples=4 | dt=319ms/step (cum)
+  step 11400 | MLM=5.3373 con=3.4539 total=5.3373 | distinct_samples=4 | dt=319ms/step (cum)
+  step 11600 | MLM=4.9316 con=3.4433 total=4.9316 | distinct_samples=4 | dt=319ms/step (cum)
+  step 11800 | MLM=5.0479 con=3.4593 total=5.0479 | distinct_samples=4 | dt=319ms/step (cum)
+  step 12000 | MLM=4.9510 con=3.4342 total=4.9510 | distinct_samples=4 | dt=319ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.0s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5166
+    delta_mean = +0.0009 (within 0.9625 vs between 0.9616)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step12000.json
+[mvt] step 12000 | wall 3835s | probe1_auc=0.5166 | eval_dt=10.0s
+  step 12200 | MLM=4.8967 con=3.4410 total=4.8967 | distinct_samples=4 | dt=320ms/step (cum)
+  step 12400 | MLM=5.1833 con=3.4476 total=5.1833 | distinct_samples=4 | dt=320ms/step (cum)
+  step 12600 | MLM=5.1995 con=3.4058 total=5.1995 | distinct_samples=4 | dt=320ms/step (cum)
+  step 12800 | MLM=5.1963 con=3.4470 total=5.1963 | distinct_samples=4 | dt=320ms/step (cum)
+  step 13000 | MLM=4.9021 con=3.4506 total=4.9021 | distinct_samples=4 | dt=320ms/step (cum)
+  step 13200 | MLM=5.2720 con=3.4442 total=5.2720 | distinct_samples=4 | dt=320ms/step (cum)
+  step 13400 | MLM=4.3667 con=3.4251 total=4.3667 | distinct_samples=4 | dt=320ms/step (cum)
+  step 13600 | MLM=5.0512 con=3.4321 total=5.0512 | distinct_samples=4 | dt=320ms/step (cum)
+  step 13800 | MLM=5.1697 con=3.4403 total=5.1697 | distinct_samples=4 | dt=319ms/step (cum)
+  step 14000 | MLM=4.8617 con=3.4614 total=4.8617 | distinct_samples=4 | dt=320ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 3.1s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 13.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5155
+    delta_mean = +0.0009 (within 0.9575 vs between 0.9566)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step14000.json
+[mvt] step 14000 | wall 4491s | probe1_auc=0.5155 | eval_dt=16.9s
+  step 14200 | MLM=5.2484 con=3.4536 total=5.2484 | distinct_samples=4 | dt=321ms/step (cum)
+  step 14400 | MLM=5.2419 con=3.4327 total=5.2419 | distinct_samples=4 | dt=321ms/step (cum)
+  step 14600 | MLM=4.9404 con=3.4541 total=4.9404 | distinct_samples=4 | dt=321ms/step (cum)
+  step 14800 | MLM=4.6826 con=3.4917 total=4.6826 | distinct_samples=4 | dt=321ms/step (cum)
+  step 15000 | MLM=4.6682 con=3.4618 total=4.6682 | distinct_samples=4 | dt=321ms/step (cum)
+  step 15200 | MLM=4.8416 con=3.4752 total=4.8416 | distinct_samples=4 | dt=321ms/step (cum)
+  step 15400 | MLM=4.8500 con=3.4523 total=4.8500 | distinct_samples=4 | dt=321ms/step (cum)
+  step 15600 | MLM=4.8705 con=3.4328 total=4.8705 | distinct_samples=4 | dt=321ms/step (cum)
+  step 15800 | MLM=5.0008 con=3.4492 total=5.0008 | distinct_samples=4 | dt=321ms/step (cum)
+  step 16000 | MLM=4.6911 con=3.4484 total=4.6911 | distinct_samples=4 | dt=321ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.3s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5143
+    delta_mean = +0.0009 (within 0.9491 vs between 0.9481)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step16000.json
+[mvt] step 16000 | wall 5154s | probe1_auc=0.5143 | eval_dt=10.2s
+  step 16200 | MLM=4.7717 con=3.4776 total=4.7717 | distinct_samples=4 | dt=322ms/step (cum)
+  step 16400 | MLM=5.1849 con=3.4756 total=5.1849 | distinct_samples=4 | dt=322ms/step (cum)
+  step 16600 | MLM=4.8617 con=3.4364 total=4.8617 | distinct_samples=4 | dt=322ms/step (cum)
+  step 16800 | MLM=4.8017 con=3.4529 total=4.8017 | distinct_samples=4 | dt=322ms/step (cum)
+  step 17000 | MLM=4.9875 con=3.4443 total=4.9875 | distinct_samples=4 | dt=322ms/step (cum)
+  step 17200 | MLM=5.0146 con=3.5432 total=5.0146 | distinct_samples=4 | dt=322ms/step (cum)
+  step 17400 | MLM=4.9590 con=3.4871 total=4.9590 | distinct_samples=4 | dt=322ms/step (cum)
+  step 17600 | MLM=4.9796 con=3.4142 total=4.9796 | distinct_samples=4 | dt=322ms/step (cum)
+  step 17800 | MLM=4.8928 con=3.4991 total=4.8928 | distinct_samples=4 | dt=322ms/step (cum)
+  step 18000 | MLM=4.8836 con=3.5054 total=4.8836 | distinct_samples=4 | dt=322ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 3.1s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 16.0s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5170
+    delta_mean = +0.0013 (within 0.9423 vs between 0.9410)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step18000.json
+[mvt] step 18000 | wall 5815s | probe1_auc=0.5170 | eval_dt=19.3s
+  step 18200 | MLM=4.9713 con=3.4907 total=4.9713 | distinct_samples=4 | dt=323ms/step (cum)
+  step 18400 | MLM=4.8639 con=3.4752 total=4.8639 | distinct_samples=4 | dt=323ms/step (cum)
+  step 18600 | MLM=4.4616 con=3.4530 total=4.4616 | distinct_samples=4 | dt=323ms/step (cum)
+  step 18800 | MLM=4.3862 con=3.4849 total=4.3862 | distinct_samples=4 | dt=323ms/step (cum)
+  step 19000 | MLM=4.5578 con=3.4863 total=4.5578 | distinct_samples=4 | dt=323ms/step (cum)
+  step 19200 | MLM=4.4743 con=3.4981 total=4.4743 | distinct_samples=4 | dt=323ms/step (cum)
+  step 19400 | MLM=4.7115 con=3.4789 total=4.7115 | distinct_samples=4 | dt=323ms/step (cum)
+  step 19600 | MLM=4.8300 con=3.5514 total=4.8300 | distinct_samples=4 | dt=323ms/step (cum)
+  step 19800 | MLM=4.7618 con=3.5706 total=4.7618 | distinct_samples=4 | dt=323ms/step (cum)
+  step 20000 | MLM=4.5043 con=3.4962 total=4.5043 | distinct_samples=4 | dt=323ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.9s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 9.1s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5150
+    delta_mean = +0.0010 (within 0.9471 vs between 0.9461)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step20000.json
+[mvt] step 20000 | wall 6472s | probe1_auc=0.5150 | eval_dt=11.2s
+  step 20200 | MLM=4.8798 con=3.4657 total=4.8798 | distinct_samples=4 | dt=324ms/step (cum)
+  step 20400 | MLM=4.5790 con=3.4983 total=4.5790 | distinct_samples=4 | dt=324ms/step (cum)
+  step 20600 | MLM=4.2331 con=3.4701 total=4.2331 | distinct_samples=4 | dt=324ms/step (cum)
+  step 20800 | MLM=4.7240 con=3.4548 total=4.7240 | distinct_samples=4 | dt=324ms/step (cum)
+  step 21000 | MLM=4.9490 con=3.4582 total=4.9490 | distinct_samples=4 | dt=324ms/step (cum)
+  step 21200 | MLM=5.1290 con=3.4329 total=5.1290 | distinct_samples=4 | dt=324ms/step (cum)
+  step 21400 | MLM=4.8686 con=3.4575 total=4.8686 | distinct_samples=4 | dt=324ms/step (cum)
+  step 21600 | MLM=4.2831 con=3.4607 total=4.2831 | distinct_samples=4 | dt=324ms/step (cum)
+  step 21800 | MLM=4.1815 con=3.4099 total=4.1815 | distinct_samples=4 | dt=324ms/step (cum)
+  step 22000 | MLM=4.8943 con=3.4602 total=4.8943 | distinct_samples=4 | dt=324ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5186
+    delta_mean = +0.0009 (within 0.9487 vs between 0.9478)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step22000.json
+[mvt] step 22000 | wall 7139s | probe1_auc=0.5186 | eval_dt=10.5s
+  step 22200 | MLM=4.7904 con=3.4599 total=4.7904 | distinct_samples=4 | dt=325ms/step (cum)
+  step 22400 | MLM=4.4548 con=3.4261 total=4.4548 | distinct_samples=4 | dt=325ms/step (cum)
+  step 22600 | MLM=4.7177 con=3.4526 total=4.7177 | distinct_samples=4 | dt=324ms/step (cum)
+  step 22800 | MLM=5.3073 con=3.4449 total=5.3073 | distinct_samples=4 | dt=324ms/step (cum)
+  step 23000 | MLM=4.2464 con=3.4327 total=4.2464 | distinct_samples=4 | dt=324ms/step (cum)
+  step 23200 | MLM=4.4715 con=3.4276 total=4.4715 | distinct_samples=4 | dt=324ms/step (cum)
+  step 23400 | MLM=4.2472 con=3.4455 total=4.2472 | distinct_samples=4 | dt=324ms/step (cum)
+  step 23600 | MLM=4.3766 con=3.4608 total=4.3766 | distinct_samples=4 | dt=324ms/step (cum)
+  step 23800 | MLM=4.5711 con=3.4484 total=4.5711 | distinct_samples=4 | dt=324ms/step (cum)
+  step 24000 | MLM=4.4834 con=3.4565 total=4.4834 | distinct_samples=4 | dt=324ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.5s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5166
+    delta_mean = +0.0009 (within 0.9402 vs between 0.9392)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step24000.json
+[mvt] step 24000 | wall 7796s | probe1_auc=0.5166 | eval_dt=10.5s
+  step 24200 | MLM=4.4507 con=3.4115 total=4.4507 | distinct_samples=4 | dt=325ms/step (cum)
+  step 24400 | MLM=4.2732 con=3.4490 total=4.2732 | distinct_samples=4 | dt=325ms/step (cum)
+  step 24600 | MLM=4.4328 con=3.4578 total=4.4328 | distinct_samples=4 | dt=325ms/step (cum)
+  step 24800 | MLM=4.8730 con=3.4340 total=4.8730 | distinct_samples=4 | dt=325ms/step (cum)
+  step 25000 | MLM=4.7171 con=3.4049 total=4.7171 | distinct_samples=4 | dt=324ms/step (cum)
+  step 25200 | MLM=4.5897 con=3.4309 total=4.5897 | distinct_samples=4 | dt=324ms/step (cum)
+  step 25400 | MLM=4.2857 con=3.4460 total=4.2857 | distinct_samples=4 | dt=324ms/step (cum)
+  step 25600 | MLM=4.6968 con=3.4137 total=4.6968 | distinct_samples=4 | dt=324ms/step (cum)
+  step 25800 | MLM=4.2698 con=3.4775 total=4.2698 | distinct_samples=4 | dt=324ms/step (cum)
+  step 26000 | MLM=4.2414 con=3.4457 total=4.2414 | distinct_samples=4 | dt=324ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5173
+    delta_mean = +0.0011 (within 0.9363 vs between 0.9352)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step26000.json
+[mvt] step 26000 | wall 8430s | probe1_auc=0.5173 | eval_dt=9.5s
+  step 26200 | MLM=4.7755 con=3.4309 total=4.7755 | distinct_samples=4 | dt=324ms/step (cum)
+  step 26400 | MLM=4.4757 con=3.4429 total=4.4757 | distinct_samples=4 | dt=324ms/step (cum)
+  step 26600 | MLM=4.6909 con=3.4509 total=4.6909 | distinct_samples=4 | dt=324ms/step (cum)
+  step 26800 | MLM=4.4453 con=3.4208 total=4.4453 | distinct_samples=4 | dt=324ms/step (cum)
+  step 27000 | MLM=3.6918 con=3.4481 total=3.6918 | distinct_samples=4 | dt=324ms/step (cum)
+  step 27200 | MLM=4.3610 con=3.4463 total=4.3610 | distinct_samples=4 | dt=324ms/step (cum)
+  step 27400 | MLM=4.5039 con=3.4490 total=4.5039 | distinct_samples=4 | dt=323ms/step (cum)
+  step 27600 | MLM=4.1314 con=3.4534 total=4.1314 | distinct_samples=4 | dt=323ms/step (cum)
+  step 27800 | MLM=3.7260 con=3.4458 total=3.7260 | distinct_samples=4 | dt=323ms/step (cum)
+  step 28000 | MLM=4.5376 con=3.4344 total=4.5376 | distinct_samples=4 | dt=323ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5197
+    delta_mean = +0.0009 (within 0.9442 vs between 0.9433)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step28000.json
+[mvt] step 28000 | wall 9058s | probe1_auc=0.5197 | eval_dt=9.5s
+  step 28200 | MLM=3.8727 con=3.4381 total=3.8727 | distinct_samples=4 | dt=323ms/step (cum)
+  step 28400 | MLM=4.2803 con=3.4553 total=4.2803 | distinct_samples=4 | dt=323ms/step (cum)
+  step 28600 | MLM=4.4600 con=3.4756 total=4.4600 | distinct_samples=4 | dt=323ms/step (cum)
+  step 28800 | MLM=4.0780 con=3.4544 total=4.0780 | distinct_samples=4 | dt=323ms/step (cum)
+  step 29000 | MLM=4.7619 con=3.4484 total=4.7619 | distinct_samples=4 | dt=323ms/step (cum)
+  step 29200 | MLM=3.8551 con=3.4673 total=3.8551 | distinct_samples=4 | dt=323ms/step (cum)
+  step 29400 | MLM=4.3751 con=3.4709 total=4.3751 | distinct_samples=4 | dt=323ms/step (cum)
+  step 29600 | MLM=4.1481 con=3.4649 total=4.1481 | distinct_samples=4 | dt=323ms/step (cum)
+  step 29800 | MLM=4.4292 con=3.4477 total=4.4292 | distinct_samples=4 | dt=323ms/step (cum)
+  step 30000 | MLM=4.2395 con=3.4097 total=4.2395 | distinct_samples=4 | dt=323ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5155
+    delta_mean = +0.0009 (within 0.9403 vs between 0.9393)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step30000.json
+[mvt] step 30000 | wall 9686s | probe1_auc=0.5155 | eval_dt=9.5s
+  step 30200 | MLM=4.5872 con=3.4708 total=4.5872 | distinct_samples=4 | dt=323ms/step (cum)
+  step 30400 | MLM=4.2390 con=3.4123 total=4.2390 | distinct_samples=4 | dt=323ms/step (cum)
+  step 30600 | MLM=4.3822 con=3.4688 total=4.3822 | distinct_samples=4 | dt=323ms/step (cum)
+  step 30800 | MLM=4.4163 con=3.4434 total=4.4163 | distinct_samples=4 | dt=322ms/step (cum)
+  step 31000 | MLM=3.8831 con=3.4702 total=3.8831 | distinct_samples=4 | dt=322ms/step (cum)
+  step 31200 | MLM=3.8094 con=3.4465 total=3.8094 | distinct_samples=4 | dt=322ms/step (cum)
+  step 31400 | MLM=4.6086 con=3.4314 total=4.6086 | distinct_samples=4 | dt=322ms/step (cum)
+  step 31600 | MLM=4.5238 con=3.4318 total=4.5238 | distinct_samples=4 | dt=322ms/step (cum)
+  step 31800 | MLM=4.2877 con=3.4414 total=4.2877 | distinct_samples=4 | dt=322ms/step (cum)
+  step 32000 | MLM=3.9997 con=3.4564 total=3.9997 | distinct_samples=4 | dt=322ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 8.3s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5190
+    delta_mean = +0.0009 (within 0.9396 vs between 0.9387)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step32000.json
+[mvt] step 32000 | wall 10314s | probe1_auc=0.5190 | eval_dt=10.2s
+  step 32200 | MLM=4.5595 con=3.4414 total=4.5595 | distinct_samples=4 | dt=322ms/step (cum)
+  step 32400 | MLM=4.0039 con=3.4399 total=4.0039 | distinct_samples=4 | dt=322ms/step (cum)
+  step 32600 | MLM=3.9209 con=3.4301 total=3.9209 | distinct_samples=4 | dt=322ms/step (cum)
+  step 32800 | MLM=4.3600 con=3.4550 total=4.3600 | distinct_samples=4 | dt=322ms/step (cum)
+  step 33000 | MLM=3.6390 con=3.4325 total=3.6390 | distinct_samples=4 | dt=322ms/step (cum)
+  step 33200 | MLM=3.9716 con=3.4796 total=3.9716 | distinct_samples=4 | dt=322ms/step (cum)
+  step 33400 | MLM=4.2811 con=3.4488 total=4.2811 | distinct_samples=4 | dt=322ms/step (cum)
+  step 33600 | MLM=4.3474 con=3.4603 total=4.3474 | distinct_samples=4 | dt=322ms/step (cum)
+  step 33800 | MLM=4.4851 con=3.4529 total=4.4851 | distinct_samples=4 | dt=322ms/step (cum)
+  step 34000 | MLM=3.6724 con=3.4355 total=3.6724 | distinct_samples=4 | dt=322ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.7s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5187
+    delta_mean = +0.0013 (within 0.9276 vs between 0.9263)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step34000.json
+[mvt] step 34000 | wall 10948s | probe1_auc=0.5187 | eval_dt=9.6s
+  step 34200 | MLM=4.4858 con=3.4689 total=4.4858 | distinct_samples=4 | dt=322ms/step (cum)
+  step 34400 | MLM=4.1653 con=3.4591 total=4.1653 | distinct_samples=4 | dt=322ms/step (cum)
+  step 34600 | MLM=3.9635 con=3.4633 total=3.9635 | distinct_samples=4 | dt=322ms/step (cum)
+  step 34800 | MLM=3.9435 con=3.4335 total=3.9435 | distinct_samples=4 | dt=322ms/step (cum)
+  step 35000 | MLM=3.6486 con=3.4430 total=3.6486 | distinct_samples=4 | dt=322ms/step (cum)
+  step 35200 | MLM=4.0561 con=3.4468 total=4.0561 | distinct_samples=4 | dt=322ms/step (cum)
+  step 35400 | MLM=4.3480 con=3.4454 total=4.3480 | distinct_samples=4 | dt=322ms/step (cum)
+  step 35600 | MLM=3.8877 con=3.4676 total=3.8877 | distinct_samples=4 | dt=321ms/step (cum)
+  step 35800 | MLM=4.2028 con=3.4209 total=4.2028 | distinct_samples=4 | dt=321ms/step (cum)
+  step 36000 | MLM=3.7689 con=3.4402 total=3.7689 | distinct_samples=4 | dt=321ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.7s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5147
+    delta_mean = +0.0011 (within 0.9260 vs between 0.9249)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step36000.json
+[mvt] step 36000 | wall 11577s | probe1_auc=0.5147 | eval_dt=9.5s
+  step 36200 | MLM=4.2367 con=3.4737 total=4.2367 | distinct_samples=4 | dt=322ms/step (cum)
+  step 36400 | MLM=4.0682 con=3.4420 total=4.0682 | distinct_samples=4 | dt=321ms/step (cum)
+  step 36600 | MLM=3.8622 con=3.4789 total=3.8622 | distinct_samples=4 | dt=321ms/step (cum)
+  step 36800 | MLM=3.8164 con=3.4238 total=3.8164 | distinct_samples=4 | dt=321ms/step (cum)
+  step 37000 | MLM=3.6433 con=3.4916 total=3.6433 | distinct_samples=4 | dt=321ms/step (cum)
+  step 37200 | MLM=3.9271 con=3.4336 total=3.9271 | distinct_samples=4 | dt=321ms/step (cum)
+  step 37400 | MLM=4.1706 con=3.4704 total=4.1706 | distinct_samples=4 | dt=321ms/step (cum)
+  step 37600 | MLM=3.5938 con=3.4537 total=3.5938 | distinct_samples=4 | dt=321ms/step (cum)
+  step 37800 | MLM=4.0319 con=3.4325 total=4.0319 | distinct_samples=4 | dt=321ms/step (cum)
+  step 38000 | MLM=3.7693 con=3.4629 total=3.7693 | distinct_samples=4 | dt=321ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_big/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 7.6s; shape=(700, 768)
+  Coherence computed in 0.2s
+    AUC = 0.5184
+    delta_mean = +0.0015 (within 0.9213 vs between 0.9198)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_big/probe1_step38000.json
+[mvt] step 38000 | wall 12207s | probe1_auc=0.5184 | eval_dt=9.5s
+  step 38200 | MLM=3.3592 con=3.4566 total=3.3592 | distinct_samples=4 | dt=321ms/step (cum)
+  step 38400 | MLM=3.9601 con=3.4474 total=3.9601 | distinct_samples=4 | dt=321ms/step (cum)
+  step 38600 | MLM=3.9936 con=3.4409 total=3.9936 | distinct_samples=4 | dt=321ms/step (cum)
+  step 38800 | MLM=3.9477 con=3.4409 total=3.9477 | distinct_samples=4 | dt=321ms/step (cum)
+  step 39000 | MLM=4.0347 con=3.5228 total=4.0347 | distinct_samples=4 | dt=321ms/step (cum)
+  step 39200 | MLM=4.2766 con=3.4854 total=4.2766 | distinct_samples=4 | dt=321ms/step (cum)
+  step 39400 | MLM=3.5683 con=3.4630 total=3.5683 | distinct_samples=4 | dt=321ms/step (cum)
+  step 39600 | MLM=3.4558 con=3.5338 total=3.4558 | distinct_samples=4 | dt=321ms/step (cum)
+  step 39800 | MLM=4.2863 con=3.4667 total=4.2863 | distinct_samples=4 | dt=321ms/step (cum)
+[train_mlm] final checkpoint: experiments/mlm_big/checkpoint.pt (145.65 MB)
+[train_mlm] step 0 losses: (8.322147369384766, 3.561906576156616)
+[train_mlm] last losses:   (3.735387086868286, 3.4471378326416016)

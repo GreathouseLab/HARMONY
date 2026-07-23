@@ -1,0 +1,90 @@
+[train_mlm] device: mps
+[train_mlm] tokenizer vocab_size=4096; extending to 4097 (added [MASK]=4096)
+[paired_loader] path: output/train.txt
+[paired_loader] parsed 126 samples, 25200 reads (dropped 0 reads > seq_len=64 tokens)
+[paired_loader] batch recipe: K=4 samples × M=8 reads = batch size 32
+[paired_loader] pad token id=4090 (<|bos|>) — never a mask candidate
+[train_mlm] model: depth=2 n_embd=256 params=4.82M
+[train_mlm] mlm_softcap=0.0 (<=0 = off) | train mask_prob=0.15
+[GPT_MLM.setup_optimizer] Muon body + AdamW heads (incl. projection_head). AdamW LR scale = 1.732051
+[train_mlm] pre-step checkpoint: experiments/mlm_sweep_B_capoff/checkpoint.pt (15.09 MB)
+[train_mlm] periodic Probe 1 + VAL-MLM every 2000 steps -> experiments/mlm_sweep_B_capoff/probe_trajectory.csv
+  step 0000 | MLM=8.3198 con=3.7234 total=8.3198 | distinct_samples=4 | dt=1055ms/step (cum)
+  step 1000 | MLM=6.1632 con=3.4248 total=6.1632 | distinct_samples=4 | dt=69ms/step (cum)
+  step 2000 | MLM=5.8982 con=3.4249 total=5.8982 | distinct_samples=4 | dt=69ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_sweep_B_capoff/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.5s; shape=(700, 256)
+  Coherence computed in 0.3s
+    AUC = 0.5219
+    delta_mean = +0.0003 (within 0.9907 vs between 0.9904)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_sweep_B_capoff/probe1_step02000.json
+[mvt] step 2000 | wall 154s | probe1_auc=0.5219 | val_msk top1=0.1094 top5=0.1474 CE=6.4598 (n=3812) | eval_dt=16.2s
+[mvt] NEW BEST AUC 0.5219 at step 2000 -> experiments/mlm_sweep_B_capoff/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.4598 (top1=0.1094) at step 2000 -> experiments/mlm_sweep_B_capoff/best_val.pt
+  step 3000 | MLM=6.0382 con=3.4322 total=6.0382 | distinct_samples=4 | dt=74ms/step (cum)
+  step 4000 | MLM=5.7954 con=3.4343 total=5.7954 | distinct_samples=4 | dt=72ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_sweep_B_capoff/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.6s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 6.1s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5232
+    delta_mean = +0.0002 (within 0.9908 vs between 0.9905)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_sweep_B_capoff/probe1_step04000.json
+[mvt] step 4000 | wall 305s | probe1_auc=0.5232 | val_msk top1=0.1044 top5=0.1490 CE=6.4522 (n=3812) | eval_dt=15.6s
+[mvt] NEW BEST AUC 0.5232 at step 4000 -> experiments/mlm_sweep_B_capoff/best.pt
+[mvt] NEW BEST VAL-MLM CE 6.4522 (top1=0.1044) at step 4000 -> experiments/mlm_sweep_B_capoff/best_val.pt
+  step 5000 | MLM=5.7266 con=3.4340 total=5.7266 | distinct_samples=4 | dt=75ms/step (cum)
+  step 6000 | MLM=6.2035 con=3.4385 total=6.2035 | distinct_samples=4 | dt=74ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_sweep_B_capoff/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.6s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5222
+    delta_mean = +0.0003 (within 0.9892 vs between 0.9890)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_sweep_B_capoff/probe1_step06000.json
+[mvt] step 6000 | wall 459s | probe1_auc=0.5222 | val_msk top1=0.1110 top5=0.1587 CE=6.4241 (n=3812) | eval_dt=15.1s
+[mvt] NEW BEST VAL-MLM CE 6.4241 (top1=0.1110) at step 6000 -> experiments/mlm_sweep_B_capoff/best_val.pt
+  step 7000 | MLM=6.1825 con=3.4225 total=6.1825 | distinct_samples=4 | dt=76ms/step (cum)
+  step 8000 | MLM=5.5808 con=3.4250 total=5.5808 | distinct_samples=4 | dt=75ms/step (cum)
+Probe 1 — Sample-coherence
+  Checkpoint: experiments/mlm_sweep_B_capoff/checkpoint.pt
+  Val data:   output/val.txt
+  Device:     mps
+  N reads per sample: 50
+
+  Sampled 700 reads across 14 samples in 1.7s
+    (mean 50.0 reads per sample)
+  Embedded 700 reads in 5.4s; shape=(700, 256)
+  Coherence computed in 0.2s
+    AUC = 0.5198
+    delta_mean = +0.0004 (within 0.9832 vs between 0.9828)
+    n_within=17150, n_between=17150
+  Saved -> experiments/mlm_sweep_B_capoff/probe1_step08000.json
+[mvt] step 8000 | wall 613s | probe1_auc=0.5198 | val_msk top1=0.1102 top5=0.1540 CE=6.3616 (n=3812) | eval_dt=14.9s
+[mvt] NEW BEST VAL-MLM CE 6.3616 (top1=0.1102) at step 8000 -> experiments/mlm_sweep_B_capoff/best_val.pt
+  step 9000 | MLM=5.8895 con=3.4386 total=5.8895 | distinct_samples=4 | dt=76ms/step (cum)
+[train_mlm] final checkpoint: experiments/mlm_sweep_B_capoff/checkpoint.pt (15.09 MB)
+[train_mlm] step 0 losses: (8.319812774658203, 3.723435401916504)
+[train_mlm] last losses:   (5.213095188140869, 3.4409024715423584)

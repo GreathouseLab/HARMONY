@@ -1,0 +1,37 @@
+{
+  "total_msk_dna_positions": 3731,
+  "n_train_reads": 189000,
+  "mask_prob": 0.15,
+  "mask_seed": 7,
+  "buckets": {
+    "both_clean": {
+      "n_positions": 2869,
+      "frac_of_total": 0.7689627445725007,
+      "markov_gold_top1": 0.13523875914952946,
+      "markov_corrupt_top1": 0.13523875914952946,
+      "nn_top1": {
+        "depth2_lam0": 0.11258278145695365,
+        "depth4_big": 0.11537120948065528
+      }
+    },
+    "corrupted": {
+      "n_positions": 862,
+      "frac_of_total": 0.23103725542749934,
+      "markov_gold_top1": 0.0962877030162413,
+      "markov_corrupt_top1": 0.0568445475638051,
+      "nn_top1": {
+        "depth2_lam0": 0.06612529002320186,
+        "depth4_big": 0.06844547563805105
+      }
+    }
+  },
+  "nn_overall_top1": {
+    "depth2_lam0": 0.10184937014205307,
+    "depth4_big": 0.10452961672473868
+  },
+  "verdict": {
+    "label": "architecture-underfit",
+    "nn_clean_minus_markovgold_clean": -0.019867549668874177,
+    "interpretation": "The NN trails the gold count model EVEN on clean-neighbor positions -> it is underfitting local structure it can fully see. LEVER: architecture/optimization (the CLM-derived rotary+softcap+Muon stack may be mistuned for bidirectional MLM), not masking and not information."
+  }
+}

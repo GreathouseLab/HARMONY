@@ -1,0 +1,17 @@
+Environment verified: macOS detected with Metal (MPS) hardware acceleration available.
+
+Vocab size: 4,096
+Model config: {'sequence_len': 2048, 'vocab_size': 4096, 'n_layer': 2, 'n_head': 2, 'n_kv_head': 2, 'n_embd': 256, 'window_pattern': 'SSL'}
+Parameter counts:
+  wte                     : 1,048,576
+  value_embeds            : 1,048,576
+  lm_head                 : 1,048,576
+  transformer_matrices    : 1,572,928
+  scalars                 : 4
+  total                   : 4,718,660
+Estimated FLOPs per token: 2.516621e+07
+Traceback (most recent call last):
+  File "/Users/leigh_greathouse/Documents/My_Code/HARMONY/harmony-autoresearch/train.py", line 120, in <module>
+    assert TOTAL_BATCH_SIZE % tokens_per_fwdbwd == 0
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

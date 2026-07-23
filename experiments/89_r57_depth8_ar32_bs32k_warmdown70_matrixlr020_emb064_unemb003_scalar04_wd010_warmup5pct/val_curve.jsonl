@@ -1,0 +1,16 @@
+{"step": 10, "training_time": 0, "progress": 0.0, "val_bpb": 2.7176564910941017, "full_eval": false}
+{"step": 20, "training_time": 18.170287370681763, "progress": 0.054001214504241946, "val_bpb": 2.184685225012591, "full_eval": false}
+{"step": 30, "training_time": 38.35119128227234, "progress": 0.12119287093480428, "val_bpb": 2.0922915817504446, "full_eval": false}
+{"step": 40, "training_time": 59.20645546913147, "progress": 0.19035683472951254, "val_bpb": 2.0736102631901474, "full_eval": false}
+{"step": 50, "training_time": 80.99624538421631, "progress": 0.26240691900253293, "val_bpb": 2.029287746698666, "full_eval": false}
+{"step": 60, "training_time": 101.67535638809204, "progress": 0.3322585980097453, "val_bpb": 2.0144746872736903, "full_eval": false}
+{"step": 70, "training_time": 122.11008644104004, "progress": 0.4004071640968323, "val_bpb": 2.0134214122530176, "full_eval": false}
+{"step": 80, "training_time": 142.67034435272217, "progress": 0.46872997522354126, "val_bpb": 2.0001915013544664, "full_eval": false}
+{"step": 90, "training_time": 164.1074879169464, "progress": 0.5389555430412293, "val_bpb": 1.9940998644458705, "full_eval": false}
+{"step": 100, "training_time": 184.8177399635315, "progress": 0.6091634599367778, "val_bpb": 1.9906780067294259, "full_eval": false}
+{"step": 110, "training_time": 205.58599090576172, "progress": 0.6782918167114258, "val_bpb": 1.987404838853618, "full_eval": false}
+{"step": 120, "training_time": 226.34156394004822, "progress": 0.7478893089294434, "val_bpb": 1.9828118826936745, "full_eval": false}
+{"step": 130, "training_time": 247.538316488266, "progress": 0.8173572119077047, "val_bpb": 1.9766387650799973, "full_eval": false}
+{"step": 140, "training_time": 267.89597249031067, "progress": 0.8862192209561666, "val_bpb": 1.972583150107534, "full_eval": false}
+{"step": 150, "training_time": 289.03909707069397, "progress": 0.9565005977948506, "val_bpb": 1.9706694322032643, "full_eval": false}
+{"step": 156, "training_time": 301.796683549881, "progress": 1.0, "val_bpb": 1.9672058878736915, "full_eval": true}

@@ -1,0 +1,89 @@
+{
+  "architecture": {
+    "type": "nn.TransformerEncoder (vanilla BERT-style)",
+    "d_model": 256,
+    "n_head": 4,
+    "n_layers": 4,
+    "ffn": 1024,
+    "dropout": 0.1,
+    "pos": "learned",
+    "softcap": null,
+    "optimizer": "AdamW",
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "warmup": 500,
+    "params_M": 5.277697
+  },
+  "training": {
+    "max_steps": 10000,
+    "mask_prob": 0.15,
+    "lam": 0,
+    "seed": 42
+  },
+  "best_val": {
+    "top1": 0.10729275970619098,
+    "top5": 0.13667366211962226,
+    "ce": 6.268059481648007,
+    "step": 4000
+  },
+  "final_val": {
+    "step": 8000,
+    "wall_s": 351.4717466831207,
+    "L_MLM": 5.685575485229492,
+    "n_positions": 3812,
+    "top1": 0.10676810073452256,
+    "top5": 0.141395592864638,
+    "ce_nats": 6.221258629063035
+  },
+  "trajectory": [
+    {
+      "step": 2000,
+      "wall_s": 88.53999495506287,
+      "L_MLM": 6.215009689331055,
+      "n_positions": 3812,
+      "top1": 0.1049317943336831,
+      "top5": 0.13641133263378805,
+      "ce_nats": 6.314954077403105
+    },
+    {
+      "step": 4000,
+      "wall_s": 175.89865589141846,
+      "L_MLM": 5.989253520965576,
+      "n_positions": 3812,
+      "top1": 0.10729275970619098,
+      "top5": 0.13667366211962226,
+      "ce_nats": 6.268059481648007
+    },
+    {
+      "step": 6000,
+      "wall_s": 263.23466968536377,
+      "L_MLM": 6.030707359313965,
+      "n_positions": 3812,
+      "top1": 0.10729275970619098,
+      "top5": 0.1419202518363064,
+      "ce_nats": 6.2523869486950066
+    },
+    {
+      "step": 8000,
+      "wall_s": 351.4717466831207,
+      "L_MLM": 5.685575485229492,
+      "n_positions": 3812,
+      "top1": 0.10676810073452256,
+      "top5": 0.141395592864638,
+      "ce_nats": 6.221258629063035
+    }
+  ],
+  "references": {
+    "unigram": 0.0923,
+    "depth2_lam0_ourstack": 0.109,
+    "depth4_big_ourstack": 0.1119,
+    "sweep_best_ourstack": 0.112,
+    "count_model_overall": 0.1272,
+    "count_model_clean_ceiling": 0.1352
+  },
+  "verdict": {
+    "label": "ceiling-is-real",
+    "best_minus_count_ceiling": -0.027907240293809005,
+    "interpretation": "Vanilla encoder lands at ~0.11 too -> 0.135 is near the real generalization ceiling for a learned model on this within-read task; the count model just memorizes local stats. Stop chasing within-read; the lever is added information / Layer 2."
+  }
+}
