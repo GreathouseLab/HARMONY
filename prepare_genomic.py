@@ -21,7 +21,13 @@ import math
 import pickle
 import argparse
 
-import rustbpe
+# rustbpe is only needed to TRAIN a tokenizer (train_tokenizer); loading/using an existing one
+# (Tokenizer.from_directory) does not. Import lazily so environments without rustbpe — e.g. Aurora's
+# frameworks module — can still load the tokenizer and train the model. See Aurora port notes.
+try:
+    import rustbpe
+except ImportError:
+    rustbpe = None
 import tiktoken
 import torch
 
@@ -76,6 +82,11 @@ def text_iterator(train_path, max_chars=1_000_000_000, chunk_size=1024 * 1024):
 
 def train_tokenizer(train_path, vocab_size):
     """Train BPE tokenizer on genomic text, save as tiktoken pickle."""
+    if rustbpe is None:
+        raise ImportError(
+            "rustbpe is required to TRAIN a tokenizer but is not installed. "
+            "If you only need to load an existing tokenizer, use Tokenizer.from_directory(). "
+            "To train, install rustbpe (see upstream autoresearch), then re-run.")
     tokenizer_pkl = os.path.join(TOKENIZER_DIR, "tokenizer.pkl")
     token_bytes_path = os.path.join(TOKENIZER_DIR, "token_bytes.pt")
 
