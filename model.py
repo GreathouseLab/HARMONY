@@ -21,6 +21,13 @@ except Exception:  # keep model.py importable standalone
 # NOTE (Aurora port): 'xpu' deliberately falls through to the NON-compiled optimizer path below
 # (same as mps) until torch.compile is validated on Intel Max GPUs. Revisit after a numerics check.
 
+# Embedding/rotary compute dtype. bf16 on backends that auto-promote bf16×fp32 matmuls (cuda, mps);
+# fp32 on xpu/cpu, which are strict — Aurora's torch raises "BFloat16 != float" otherwise.
+# Force fp32 anywhere with HARMONY_FP32=1. See HARMONY_STATUS_AURORA_HANDOFF.md (bf16 note).
+import os as _os
+_EMB_DTYPE = (torch.float32 if (_os.environ.get("HARMONY_FP32") == "1" or _device_type in ("xpu", "cpu"))
+             else torch.bfloat16)
+
 
 @dataclass
 class GPTConfig:
@@ -180,9 +187,9 @@ class GPT(nn.Module):
         head_dim = self.config.n_embd // self.config.n_head
         cos, sin = self._precompute_rotary_embeddings(self.rotary_seq_len, head_dim)
         self.cos, self.sin = cos, sin
-        self.transformer.wte.to(dtype=torch.bfloat16)
+        self.transformer.wte.to(dtype=_EMB_DTYPE)
         for ve in self.value_embeds.values():
-            ve.to(dtype=torch.bfloat16)
+            ve.to(dtype=_EMB_DTYPE)
 
     def _precompute_rotary_embeddings(self, seq_len, head_dim, base=10000, device=None):
         if device is None:
@@ -192,7 +199,7 @@ class GPT(nn.Module):
         t = torch.arange(seq_len, dtype=torch.float32, device=device)
         freqs = torch.outer(t, inv_freq)
         cos, sin = freqs.cos(), freqs.sin()
-        cos, sin = cos.bfloat16(), sin.bfloat16()
+        cos, sin = cos.to(_EMB_DTYPE), sin.to(_EMB_DTYPE)
         cos, sin = cos[None, :, None, :], sin[None, :, None, :]
         return cos, sin
 

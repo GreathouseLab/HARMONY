@@ -146,20 +146,21 @@ unchanged** — step-0 loss 8.3176 matches the historical baseline; `model._devi
 to the same value so the optimizer compile path is untouched. XPU deliberately falls through to the
 non-`torch.compile` optimizer path (like mps) until validated.
 
-**KNOWN ISSUE found during the port — bf16 dtype dependency (`model.py`).** The model casts token
-embeddings, value-embeds, and rotary cos/sin to **bfloat16** (`model.py:183,185,195`) while linear
-weights stay fp32. MPS (and CUDA) auto-promote that mixed matmul; **CPU rejects it**
-(`RuntimeError: m1 and m2 have different dtype, BFloat16 != float`). Intel Max GPUs support bf16, so
-this **likely works on XPU** as it does on MPS/CUDA — but it MUST be validated on real hardware, and
-CPU-only execution (e.g., Aurora login nodes for debugging) would need an explicit fp32 mode (a small,
-sign-off-required change to `model.py`; not done, to avoid altering numerics).
+**RESOLVED (2026-07-23) — bf16 dtype dependency (`model.py`).** The model cast token embeddings,
+value-embeds, and rotary cos/sin to **bfloat16** while linear weights stayed fp32. MPS/CUDA auto-promote
+that mixed matmul; **XPU and CPU reject it** (`RuntimeError: ... BFloat16 != float`) — confirmed on
+Aurora hardware. Fixed via `model.py:_EMB_DTYPE`: **fp32 on xpu/cpu, bf16 on cuda/mps**, overridable
+with `HARMONY_FP32=1`. Validated on an Aurora compute node: `device=xpu`, step-0 loss ≈ **8.318**, loss
+descends 8.32 → 5.6 over 200 steps, ~30 ms/step (depth-2). The Muon optimizer's internal bf16 block is
+self-consistent (bf16×bf16) and runs fine. Benign warning remaining: "IPEX doesn't support xetla" —
+SDPA falls back to a working non-optimized attention kernel (a throughput note, not a correctness bug).
 
 **Remaining porting tasks:**
-- Validate the **bf16 path + Muon optimizer + custom bidirectional attention** on XPU (run the 200-step
-  regression: `python train_mlm.py --depth 2 --max-steps 200 --seed 42 ...`, expect step-0 loss ≈ 8.317).
-- Add **DDP / multi-GPU + multi-node** scaling (currently single-device).
-- Re-verify numerics (softcap, masking RNG) against the Mac baselines before trusting new numbers.
-- (Optional) add an fp32 fallback mode for CPU debugging.
+- ✅ ~~Validate bf16/Muon/attention on XPU~~ — done; xpu path is fp32 (above).
+- Add **DDP / multi-GPU + multi-node** scaling — **the next big build** (runs currently use 1 of a
+  node's 12 tiles).
+- Transfer the full `train.txt` (5.6 GB) to Aurora via **Globus** (only `val.txt` is up so far).
+- Revisit the **xetla/SDPA** attention kernel for throughput on long runs.
 - Confirm exact module/toolchain versions against current ANL Aurora documentation.
 
 ---
