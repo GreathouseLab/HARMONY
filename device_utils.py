@@ -114,5 +114,125 @@ def describe(dev: str | None = None) -> str:
             f"mps={getattr(torch.backends, 'mps', None) is not None and torch.backends.mps.is_available()}")
 
 
+# ============================================================
+# Distributed data-parallel helpers (single-node multi-GPU, extensible to multi-node)
+# ============================================================
+# We use MANUAL gradient all-reduce ("poor-man's DDP") instead of torch DDP because HARMONY's
+# model uses a custom forward_mlm() (not Module.forward, which DDP hooks) + a custom Muon optimizer,
+# and with lam=0 the projection head has no gradient (DDP would error on unused params). Manual
+# all-reduce sidesteps all three: each rank trains its own data shard, we average grads before step.
+# Backend: ccl (xpu/Aurora) · nccl (cuda) · gloo (cpu/mps). Override with HARMONY_DDP_BACKEND.
+
+_DIST = {"active": False, "rank": 0, "world_size": 1, "local_rank": 0}
+
+
+def _env_int(names, default):
+    for n in names:
+        v = os.environ.get(n)
+        if v is not None:
+            try:
+                return int(v)
+            except ValueError:
+                pass
+    return default
+
+
+def init_distributed(device_hint=None):
+    """Detect the launcher env (torchrun OR mpiexec/PALS) and init the process group if world_size>1.
+    Returns {active, rank, world_size, local_rank, device}. A no-op (active=False) when single-process,
+    so single-device runs are completely unchanged."""
+    world = _env_int(["WORLD_SIZE", "PMI_SIZE", "PALS_NRANKS", "OMPI_COMM_WORLD_SIZE"], 1)
+    rank = _env_int(["RANK", "PMI_RANK", "PALS_RANKID", "OMPI_COMM_WORLD_RANK"], 0)
+    lrank = _env_int(["LOCAL_RANK", "PALS_LOCAL_RANKID", "MPI_LOCALRANKID",
+                      "OMPI_COMM_WORLD_LOCAL_RANK"], -1)
+    dtype = device_type(device_hint or get_device())
+
+    if world <= 1:
+        _DIST.update(active=False, rank=0, world_size=1, local_rank=0)
+        return {**_DIST, "device": get_device()}
+
+    if lrank < 0:  # infer local rank assuming homogeneous nodes
+        mod = _backend(dtype)
+        gpn = mod.device_count() if (mod and hasattr(mod, "device_count") and mod.device_count()) else world
+        lrank = rank % max(gpn, 1)
+
+    os.environ.setdefault("MASTER_ADDR", "127.0.0.1")   # multi-node: launcher must export the head node
+    os.environ.setdefault("MASTER_PORT", "29500")
+
+    backend = os.environ.get("HARMONY_DDP_BACKEND") or {
+        "cuda": "nccl", "xpu": "ccl", "cpu": "gloo", "mps": "gloo"}.get(dtype, "gloo")
+    if backend == "ccl":
+        try:
+            import oneccl_bindings_for_pytorch  # noqa: F401  (registers the 'ccl' backend on Aurora)
+        except Exception:
+            pass
+
+    device = dtype
+    if dtype in ("xpu", "cuda"):
+        mod = _backend(dtype)
+        try:
+            mod.set_device(lrank)
+        except Exception:
+            pass
+        device = f"{dtype}:{lrank}"
+
+    import torch.distributed as dist
+    dist.init_process_group(backend=backend, rank=rank, world_size=world)
+    _DIST.update(active=True, rank=rank, world_size=world, local_rank=lrank)
+    return {**_DIST, "device": device}
+
+
+def is_main() -> bool:
+    return _DIST["rank"] == 0
+
+
+def dist_active() -> bool:
+    return _DIST["active"]
+
+
+def broadcast_parameters(model, src: int = 0) -> None:
+    """Make every rank start from identical weights (rank 0's), so manual all-reduce keeps them synced."""
+    if not _DIST["active"]:
+        return
+    import torch.distributed as dist
+    with torch.no_grad():
+        for p in model.parameters():
+            dist.broadcast(p.data, src=src)
+
+
+def allreduce_gradients(model) -> None:
+    """Average gradients across ranks in place (the core of manual data parallelism). No-op if single."""
+    if not _DIST["active"]:
+        return
+    import torch.distributed as dist
+    ws = _DIST["world_size"]
+    for p in model.parameters():
+        if p.grad is not None:                      # unused params (e.g. projection head at lam=0)
+            dist.all_reduce(p.grad, op=dist.ReduceOp.SUM)   # are None on ALL ranks -> matched collective
+            p.grad.div_(ws)
+
+
+def barrier() -> None:
+    """Keep ranks in lockstep (e.g. while rank 0 runs eval). No-op if single."""
+    if not _DIST["active"]:
+        return
+    import torch.distributed as dist
+    try:
+        dist.barrier()
+    except Exception:
+        pass
+
+
+def cleanup_distributed() -> None:
+    if not _DIST["active"]:
+        return
+    import torch.distributed as dist
+    try:
+        dist.barrier()
+    except Exception:
+        pass
+    dist.destroy_process_group()
+
+
 if __name__ == "__main__":
     print(describe())
