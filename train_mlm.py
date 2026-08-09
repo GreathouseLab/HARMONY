@@ -35,7 +35,9 @@ from model import norm, has_ve, apply_rotary_emb
 from prepare_genomic import Tokenizer
 from paired_data_loader import PairedDataLoader
 from contrastive_loss import infonce_with_sample_ids
-from device_utils import get_device, empty_cache, describe
+from device_utils import (get_device, empty_cache, describe,
+                           init_distributed, is_main, dist_active,
+                           broadcast_parameters, allreduce_gradients, barrier, cleanup_distributed)
 
 
 PROJECT_DIR = Path(__file__).parent
@@ -396,10 +398,20 @@ def save_checkpoint(model, config, step, path: Path, extra: dict | None = None):
 # ============================================================
 
 def train(args):
-    device = get_device()
-    print(f"[train_mlm] {describe(device)}")
+    # Distributed data-parallel init (no-op / single-device when not launched under mpiexec/torchrun).
+    dinfo = init_distributed()
+    device = dinfo["device"]
+    rank, world_size = dinfo["rank"], dinfo["world_size"]
+    main = is_main()
+
+    def _p(*a, **k):            # print only on rank 0 (avoids N-way console spam)
+        if main:
+            print(*a, **k)
+
+    _p(f"[train_mlm] {describe(device)}"
+       + (f" | DDP world_size={world_size} (backend-averaged grads)" if dist_active() else ""))
     tk = Tokenizer.from_directory()
-    print(f"[train_mlm] tokenizer vocab_size={tk.get_vocab_size()}; extending to {EXTENDED_VOCAB} (added [MASK]={MASK_ID})")
+    _p(f"[train_mlm] tokenizer vocab_size={tk.get_vocab_size()}; extending to {EXTENDED_VOCAB} (added [MASK]={MASK_ID})")
 
     loader = PairedDataLoader(
         txt_path=args.train_txt,
@@ -408,19 +420,20 @@ def train(args):
         reads_per_sample=args.reads_per_sample,
         n_reads_cap_per_sample=args.reads_cap,
         seq_len=args.seq_len,
-        seed=args.seed,
+        seed=args.seed + rank,   # each rank draws a DIFFERENT data shard (the point of data parallelism)
     )
 
     device_batch_size = args.samples_per_batch * args.reads_per_sample
     # Fixed TRAIN-eval set for the memorization sanity check (built from already-tokenized
     # loader reads; deterministic; ~700 reads). Lets us watch TRAIN top-1 vs VAL top-1.
     train_eval_lists = [ids for s in sorted(loader.samples)[:14] for ids in loader.samples[s][:50]]
-    print(f"[train_mlm] train-eval memorization set: {len(train_eval_lists)} reads")
+    _p(f"[train_mlm] train-eval memorization set: {len(train_eval_lists)} reads")
     model, config = build_model(device, depth=args.depth, aspect_ratio=args.aspect_ratio, seq_len=args.seq_len)
     model.mlm_softcap = args.mlm_softcap
+    broadcast_parameters(model)   # DDP: all ranks start from rank-0 weights (no-op if single-device)
     n_params = sum(p.numel() for p in model.parameters())
-    print(f"[train_mlm] model: depth={args.depth} n_embd={config.n_embd} params={n_params/1e6:.2f}M")
-    print(f"[train_mlm] mlm_softcap={args.mlm_softcap} (<=0 = off) | train mask_prob={args.mask_prob}")
+    _p(f"[train_mlm] model: depth={args.depth} n_embd={config.n_embd} params={n_params/1e6:.2f}M")
+    _p(f"[train_mlm] mlm_softcap={args.mlm_softcap} (<=0 = off) | train mask_prob={args.mask_prob}")
 
     # MuonAdamW with extended grouping (projection_head joins AdamW alongside lm_head/embeddings).
     optimizer = model.setup_optimizer(
@@ -437,9 +450,10 @@ def train(args):
     best_path = out_dir / "best.pt"
     traj_path = out_dir / "probe_trajectory.csv"
 
-    # Pre-step checkpoint (incident lesson).
-    save_checkpoint(model, config, step=-1, path=ckpt_path, extra={"note": "pre-step-0 baseline"})
-    print(f"[train_mlm] pre-step checkpoint: {ckpt_path} ({ckpt_path.stat().st_size/1e6:.2f} MB)")
+    # Pre-step checkpoint (incident lesson). Rank 0 only — all ranks hold identical weights.
+    if main:
+        save_checkpoint(model, config, step=-1, path=ckpt_path, extra={"note": "pre-step-0 baseline"})
+        _p(f"[train_mlm] pre-step checkpoint: {ckpt_path} ({ckpt_path.stat().st_size/1e6:.2f} MB)")
 
     eval_every = getattr(args, "eval_every", 0)
     val_txt_path = Path(getattr(args, "val_txt", "output/val.txt"))
@@ -450,23 +464,24 @@ def train(args):
     best_val_path = out_dir / "best_val.pt"
     val_n_per_sample = getattr(args, "val_n_per_sample", 50)
     val_mask_seed = getattr(args, "val_mask_seed", 7)
-    if eval_every > 0:
+    if eval_every > 0 and main:
         with open(traj_path, "w") as f:
             # val_msk_* columns appended at the END so index-based readers of the
             # original 5 columns (step,wall,L_MLM,L_contrastive,probe1_auc) still work.
             f.write("step,wall_clock_s,L_MLM,L_contrastive,probe1_auc,"
                     "val_msk_top1,val_msk_top5,val_msk_ce,train_msk_top1,train_msk_ce\n")
-        print(f"[train_mlm] periodic Probe 1 + VAL-MLM every {eval_every} steps -> {traj_path}")
+        _p(f"[train_mlm] periodic Probe 1 + VAL-MLM every {eval_every} steps -> {traj_path}")
 
     t0 = time.time()
     max_seconds = args.max_runtime_hours * 3600
     init_losses = None
     last_losses = None
 
-    with open(log_path, "w") as log_f:
+    # Only rank 0 writes the per-step jsonl; other ranks discard theirs (avoids a write race).
+    with open(log_path if main else os.devnull, "w") as log_f:
         for step in range(args.max_steps):
             if time.time() - t0 > max_seconds:
-                print(f"[train_mlm] MAX_RUNTIME reached at step {step}; exiting cleanly.")
+                _p(f"[train_mlm] MAX_RUNTIME reached at step {step}; exiting cleanly.")
                 break
 
             tries = 0
@@ -506,6 +521,7 @@ def train(args):
 
                     optimizer.zero_grad(set_to_none=True)
                     total.backward()
+                    allreduce_gradients(model)   # DDP: average grads across ranks (no-op if single)
                     optimizer.step()
                     break
                 except RuntimeError as e:
@@ -540,12 +556,14 @@ def train(args):
             last_losses = (float(mlm_loss.item()), float(con_loss.item()))
 
             if step % args.log_every == 0:
-                print(f"  step {step:04d} | MLM={mlm_loss.item():.4f} con={con_loss.item():.4f} "
-                      f"total={total.item():.4f} | distinct_samples={distinct} | "
-                      f"dt={(time.time()-t0)/(step+1)*1000:.0f}ms/step (cum)")
+                _p(f"  step {step:04d} | MLM={mlm_loss.item():.4f} con={con_loss.item():.4f} "
+                   f"total={total.item():.4f} | distinct_samples={distinct} | "
+                   f"dt={(time.time()-t0)/(step+1)*1000:.0f}ms/step (cum)")
 
-            # Periodic Probe 1 eval (D5 MVT)
+            # Periodic Probe 1 + VAL-MLM eval — rank 0 only (all ranks hold identical weights);
+            # other ranks wait at the barrier so the collective all-reduce stays in lockstep.
             if eval_every > 0 and step > 0 and step % eval_every == 0:
+              if main:
                 from probe_sample_coherence import run_probe1
                 model.eval()
                 t_eval = time.time()
@@ -597,13 +615,16 @@ def train(args):
                     print(f"[mvt] NEW BEST VAL-MLM CE {vm['ce_nats']:.4f} (top1={vm['top1']:.4f}) "
                           f"at step {step} -> {best_val_path}")
                 model.train()
+              barrier()   # DDP: resync all ranks after rank-0 eval (keeps the all-reduce in lockstep)
 
-    # Final checkpoint
-    save_checkpoint(model, config, step=step, path=ckpt_path,
-                    extra={"init_losses": init_losses, "last_losses": last_losses})
-    print(f"[train_mlm] final checkpoint: {ckpt_path} ({ckpt_path.stat().st_size/1e6:.2f} MB)")
-    print(f"[train_mlm] step 0 losses: {init_losses}")
-    print(f"[train_mlm] last losses:   {last_losses}")
+    # Final checkpoint (rank 0 only; weights are identical across ranks after each all-reduce).
+    if main:
+        save_checkpoint(model, config, step=step, path=ckpt_path,
+                        extra={"init_losses": init_losses, "last_losses": last_losses})
+        _p(f"[train_mlm] final checkpoint: {ckpt_path} ({ckpt_path.stat().st_size/1e6:.2f} MB)")
+    _p(f"[train_mlm] step 0 losses: {init_losses}")
+    _p(f"[train_mlm] last losses:   {last_losses}")
+    cleanup_distributed()
     return init_losses, last_losses, ckpt_path
 
 
