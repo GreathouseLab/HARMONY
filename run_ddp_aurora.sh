@@ -11,7 +11,7 @@
 #PBS -l filesystems=home:flare
 #PBS -N harmony_ddp
 
-set -euo pipefail
+set -eo pipefail
 cd "${PBS_O_WORKDIR:-.}"
 
 module use /soft/modulefiles
