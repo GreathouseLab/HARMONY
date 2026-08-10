@@ -21,6 +21,7 @@ module load frameworks
 NRANKS_PER_NODE=12                                   # 12 tiles per Aurora node
 NNODES=$(wc -l < "${PBS_NODEFILE:-/dev/null}" 2>/dev/null || echo 1)
 NRANKS=$(( NNODES * NRANKS_PER_NODE ))
+export WORLD_SIZE=$NRANKS                             # PALS exposes no global-nranks var; set it ourselves
 export MASTER_ADDR=$(head -1 "${PBS_NODEFILE:-/dev/null}" 2>/dev/null || echo 127.0.0.1)
 export MASTER_PORT=29500
 
