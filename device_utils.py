@@ -141,8 +141,12 @@ def init_distributed(device_hint=None):
     """Detect the launcher env (torchrun OR mpiexec/PALS) and init the process group if world_size>1.
     Returns {active, rank, world_size, local_rank, device}. A no-op (active=False) when single-process,
     so single-device runs are completely unchanged."""
-    world = _env_int(["WORLD_SIZE", "PMI_SIZE", "PALS_NRANKS", "OMPI_COMM_WORLD_SIZE"], 1)
-    rank = _env_int(["RANK", "PMI_RANK", "PALS_RANKID", "OMPI_COMM_WORLD_RANK"], 0)
+    world = _env_int(["WORLD_SIZE", "PMI_SIZE", "PALS_NRANKS", "OMPI_COMM_WORLD_SIZE"], 0)
+    if world <= 0:
+        # Aurora/PALS exposes NO global-nranks var — only PALS_LOCAL_SIZE (ranks on THIS node),
+        # which equals world on a single node. Multi-node MUST export WORLD_SIZE (the launcher does).
+        world = _env_int(["PALS_LOCAL_SIZE"], 1)
+    rank = _env_int(["RANK", "PMI_RANK", "PALS_RANKID", "PMIX_RANK", "OMPI_COMM_WORLD_RANK"], 0)
     lrank = _env_int(["LOCAL_RANK", "PALS_LOCAL_RANKID", "MPI_LOCALRANKID",
                       "OMPI_COMM_WORLD_LOCAL_RANK"], -1)
     dtype = device_type(device_hint or get_device())
