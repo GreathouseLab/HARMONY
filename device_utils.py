@@ -163,11 +163,13 @@ def init_distributed(device_hint=None):
     os.environ.setdefault("MASTER_ADDR", "127.0.0.1")   # multi-node: launcher must export the head node
     os.environ.setdefault("MASTER_PORT", "29500")
 
+    # xpu -> 'xccl' (native Intel XPU collective backend in torch>=2.5; validated on Aurora torch 2.10).
+    # Older stacks may need 'ccl' + oneccl_bindings — set HARMONY_DDP_BACKEND=ccl to use that path.
     backend = os.environ.get("HARMONY_DDP_BACKEND") or {
-        "cuda": "nccl", "xpu": "ccl", "cpu": "gloo", "mps": "gloo"}.get(dtype, "gloo")
+        "cuda": "nccl", "xpu": "xccl", "cpu": "gloo", "mps": "gloo"}.get(dtype, "gloo")
     if backend == "ccl":
         try:
-            import oneccl_bindings_for_pytorch  # noqa: F401  (registers the 'ccl' backend on Aurora)
+            import oneccl_bindings_for_pytorch  # noqa: F401  (registers the legacy 'ccl' backend)
         except Exception:
             pass
 
