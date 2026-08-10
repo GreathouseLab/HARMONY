@@ -155,11 +155,20 @@ descends 8.32 → 5.6 over 200 steps, ~30 ms/step (depth-2). The Muon optimizer'
 self-consistent (bf16×bf16) and runs fine. Benign warning remaining: "IPEX doesn't support xetla" —
 SDPA falls back to a working non-optimized attention kernel (a throughput note, not a correctness bug).
 
+**RESOLVED (2026-07-30) — DDP multi-GPU validated on Aurora.** 12 ranks (one per tile) via
+`mpiexec -n 12 --ppn 12`, manual gradient all-reduce (`device_utils.py`). Two Aurora-specific fixes
+were needed and are committed: (1) **world size** — PALS exposes no global-nranks var, so we read
+`PALS_LOCAL_SIZE` (single-node) / launcher exports `WORLD_SIZE` (multi-node); rank from `PALS_RANKID`/
+`PMIX_RANK`. (2) **backend** — torch 2.10 rejects `ccl`; the native **`xccl`** backend works (now the
+xpu default). Validated: `device=xpu:0 | DDP world_size=12`, step-0 loss 8.318, descends 8.3→5.2,
+~36 ms/step (depth-2). `CCL_WARN` lines are informational.
+
 **Remaining porting tasks:**
-- ✅ ~~Validate bf16/Muon/attention on XPU~~ — done; xpu path is fp32 (above).
-- Add **DDP / multi-GPU + multi-node** scaling — **the next big build** (runs currently use 1 of a
-  node's 12 tiles).
-- Transfer the full `train.txt` (5.6 GB) to Aurora via **Globus** (only `val.txt` is up so far).
+- ✅ ~~Validate bf16/Muon/attention on XPU~~ — done; xpu path is fp32.
+- ✅ ~~DDP multi-GPU~~ — done (single node, 12 tiles). **Multi-node** launch is written
+  (`run_ddp_aurora.sh` exports WORLD_SIZE) but not yet run at >1 node.
+- Transfer the full `train.txt` (5.6 GB) to Aurora via **Globus / rsync** (only `val.txt` is up).
+- Cosmetic: `PairedDataLoader` prints on every rank (11 extra banner lines) — gate on rank 0.
 - Revisit the **xetla/SDPA** attention kernel for throughput on long runs.
 - Confirm exact module/toolchain versions against current ANL Aurora documentation.
 
