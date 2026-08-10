@@ -7,7 +7,7 @@
 #PBS -A BioReason-Aurora-Test
 #PBS -q debug
 #PBS -l select=1
-#PBS -l walltime=00:30:00
+#PBS -l walltime=01:00:00
 #PBS -l filesystems=home:flare
 #PBS -N harmony_ddp
 
