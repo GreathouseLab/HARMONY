@@ -27,7 +27,7 @@ export MASTER_PORT=29500
 
 # ---- backend: our code auto-picks 'ccl' on xpu; override here if your stack wants xccl ----
 # export HARMONY_DDP_BACKEND=xccl
-export CCL_ZE_IPC_EXCHANGE=${CCL_ZE_IPC_EXCHANGE:-drmfd}   # oneCCL hint (per ALCF docs)
+export CCL_ZE_IPC_EXCHANGE=${CCL_ZE_IPC_EXCHANGE:-pidfd}   # oneCCL IPC mode; this build accepts sockets|pidfd (NOT drmfd)
 
 echo "[ddp] nodes=$NNODES ranks=$NRANKS master=$MASTER_ADDR"
 
