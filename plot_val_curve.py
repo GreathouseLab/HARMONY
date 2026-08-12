@@ -88,11 +88,15 @@ def main() -> None:
     ap.add_argument("target", nargs="?", default="experiments/ddp_depth6",
                     help="run dir or probe_trajectory.csv (default: experiments/ddp_depth6)")
     ap.add_argument("-o", "--out", default=None, help="output png (default: val_curve.png next to the csv)")
+    ap.add_argument("--logx", action="store_true",
+                    help="log-scale the x-axis (training step) — distinguishes a true plateau "
+                         "(curve flattens) from slow log-linear improvement (curve stays a rising line)")
     args = ap.parse_args()
 
     csv_path = _resolve_csv(args.target)
     rows = _load(csv_path)
-    out_path = Path(args.out) if args.out else csv_path.with_name("val_curve.png")
+    default_name = "val_curve_logx.png" if args.logx else "val_curve.png"
+    out_path = Path(args.out) if args.out else csv_path.with_name(default_name)
 
     step = _col(rows, "step")
     v_top1, t_top1 = _col(rows, "val_msk_top1"), _col(rows, "train_msk_top1")
@@ -128,7 +132,12 @@ def main() -> None:
     _label_end(ax2, step, v_ce, "val", VAL)
     _label_end(ax2, step, t_ce, "train", TRAIN)
     ax2.set_ylabel("cross-entropy\nloss (nats)", color=INK, fontsize=10)
-    ax2.set_xlabel("training step", color=INK, fontsize=10)
+    ax2.set_xlabel("training step" + (" — log scale" if args.logx else ""), color=INK, fontsize=10)
+
+    # smallest positive step, for a sane left bound on log scale (log(0) is undefined)
+    pos_steps = [s for s in step if s == s and s > 0]
+    xmin = min(pos_steps) if pos_steps else 1.0
+    xmax = max(pos_steps) if pos_steps else 1.0
 
     # ---- Tufte de-junking on both panels ----
     for ax in (ax1, ax2):
@@ -137,10 +146,15 @@ def main() -> None:
         ax.spines["left"].set_color(INK)
         ax.spines["bottom"].set_color(INK)
         ax.tick_params(colors=INK, labelsize=9)
-        ax.margins(x=0.02)
-        # a bit of right pad so the direct labels ("val"/"train") aren't clipped
-        x0, x1 = ax.get_xlim()
-        ax.set_xlim(x0, x1 + 0.08 * (x1 - x0))
+        if args.logx:
+            ax.set_xscale("log")
+            # multiplicative padding on a log axis (additive would be wrong); right pad
+            # leaves room for the direct "val"/"train" end-labels.
+            ax.set_xlim(xmin * 0.85, xmax * 1.35)
+        else:
+            ax.margins(x=0.02)
+            x0, x1 = ax.get_xlim()
+            ax.set_xlim(x0, x1 + 0.08 * (x1 - x0))  # right pad for the end-labels
 
     fig.text(0.008, 0.008,
              f"source: {csv_path.name}  ·  {len(rows)} eval points  ·  "
