@@ -5,9 +5,9 @@
 #
 # PBS resources — edit -A / -q / walltime for your allocation:
 #PBS -A BioReason-Aurora-Test
-#PBS -q debug
+#PBS -q capacity
 #PBS -l select=1
-#PBS -l walltime=00:30:00
+#PBS -l walltime=24:00:00
 #PBS -l filesystems=home:flare
 #PBS -N harmony_ddp
 
@@ -27,7 +27,7 @@ export MASTER_PORT=29500
 
 # ---- backend: our code auto-picks 'ccl' on xpu; override here if your stack wants xccl ----
 # export HARMONY_DDP_BACKEND=xccl
-export CCL_ZE_IPC_EXCHANGE=${CCL_ZE_IPC_EXCHANGE:-drmfd}   # oneCCL hint (per ALCF docs)
+export CCL_ZE_IPC_EXCHANGE=${CCL_ZE_IPC_EXCHANGE:-pidfd}   # oneCCL IPC mode; this build accepts sockets|pidfd (NOT drmfd)
 
 echo "[ddp] nodes=$NNODES ranks=$NRANKS master=$MASTER_ADDR"
 
@@ -39,8 +39,8 @@ mpiexec -n "$NRANKS" --ppn "$NRANKS_PER_NODE" \
     --train-txt output/train.txt \
     --depth 6 --aspect-ratio 192 --lam 0 \
     --reads-cap 5000 --samples-per-batch 4 --reads-per-sample 8 --seq-len 64 \
-    --max-steps 40000 --eval-every 2000 --seed 42 \
-    --mlm-softcap 15 --mask-prob 0.15 --max-runtime-hours 3
+    --max-steps 600000 --eval-every 5000 --seed 42 \
+    --mlm-softcap 15 --mask-prob 0.15 --max-runtime-hours 23.5
 
 # ── FIRST-TIME VALIDATION (run this smaller command before the depth-6 job above) ──
 # Grab a node interactively and confirm 12-tile DDP works + step-0 loss is sane:
