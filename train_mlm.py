@@ -430,6 +430,16 @@ def train(args):
     _p(f"[train_mlm] train-eval memorization set: {len(train_eval_lists)} reads")
     model, config = build_model(device, depth=args.depth, aspect_ratio=args.aspect_ratio, seq_len=args.seq_len)
     model.mlm_softcap = args.mlm_softcap
+
+    # ---- resume: restore weights BEFORE broadcast so every rank starts identical ----
+    resume_ckpt = None
+    start_step = 0
+    if getattr(args, "resume", ""):
+        resume_ckpt = torch.load(args.resume, map_location=device, weights_only=False)
+        model.load_state_dict(resume_ckpt["model_state_dict"], strict=True)
+        start_step = int(resume_ckpt.get("step", -1)) + 1
+        _p(f"[train_mlm] RESUME from {args.resume}: continuing at step {start_step}")
+
     broadcast_parameters(model)   # DDP: all ranks start from rank-0 weights (no-op if single-device)
     n_params = sum(p.numel() for p in model.parameters())
     _p(f"[train_mlm] model: depth={args.depth} n_embd={config.n_embd} params={n_params/1e6:.2f}M")
@@ -441,6 +451,12 @@ def train(args):
         weight_decay=0.0, adam_betas=(0.8, 0.95), scalar_lr=0.5,
         projection_lr=0.004,
     )
+    if resume_ckpt is not None and resume_ckpt.get("optimizer_state_dict") is not None:
+        try:
+            optimizer.load_state_dict(resume_ckpt["optimizer_state_dict"])
+            _p("[train_mlm] resumed optimizer state (momentum continues).")
+        except Exception as e:
+            _p(f"[train_mlm] WARN optimizer state not restored ({e}); using a fresh optimizer.")
 
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -457,9 +473,9 @@ def train(args):
 
     eval_every = getattr(args, "eval_every", 0)
     val_txt_path = Path(getattr(args, "val_txt", "output/val.txt"))
-    best_auc = float("-inf")
+    best_auc = resume_ckpt.get("best_auc", float("-inf")) if resume_ckpt else float("-inf")
     best_step = -1
-    best_val_ce = float("inf")          # lower is better; selects best_val.pt
+    best_val_ce = resume_ckpt.get("best_val_ce", float("inf")) if resume_ckpt else float("inf")
     best_val_step = -1
     best_val_path = out_dir / "best_val.pt"
     val_n_per_sample = getattr(args, "val_n_per_sample", 50)
@@ -479,7 +495,7 @@ def train(args):
 
     # Only rank 0 writes the per-step jsonl; other ranks discard theirs (avoids a write race).
     with open(log_path if main else os.devnull, "w") as log_f:
-        for step in range(args.max_steps):
+        for step in range(start_step, args.max_steps):
             if time.time() - t0 > max_seconds:
                 _p(f"[train_mlm] MAX_RUNTIME reached at step {step}; exiting cleanly.")
                 break
@@ -558,7 +574,7 @@ def train(args):
             if step % args.log_every == 0:
                 _p(f"  step {step:04d} | MLM={mlm_loss.item():.4f} con={con_loss.item():.4f} "
                    f"total={total.item():.4f} | distinct_samples={distinct} | "
-                   f"dt={(time.time()-t0)/(step+1)*1000:.0f}ms/step (cum)")
+                   f"dt={(time.time()-t0)/(step-start_step+1)*1000:.0f}ms/step (cum)")
 
             # Periodic Probe 1 + VAL-MLM eval — rank 0 only (all ranks hold identical weights);
             # other ranks wait at the barrier so the collective all-reduce stays in lockstep.
@@ -596,7 +612,9 @@ def train(args):
                 # latest + best (probe-AUC) checkpoints — unchanged
                 save_checkpoint(model, config, step=step, path=latest_path,
                                 extra={"probe1_auc": auc, "wall_clock_s": wall,
-                                       "val_msk_top1": vm["top1"], "val_msk_ce": vm["ce_nats"]})
+                                       "val_msk_top1": vm["top1"], "val_msk_ce": vm["ce_nats"],
+                                       "optimizer_state_dict": optimizer.state_dict(),
+                                       "best_auc": best_auc, "best_val_ce": best_val_ce})
                 if auc > best_auc:
                     best_auc = auc
                     best_step = step
@@ -620,7 +638,9 @@ def train(args):
     # Final checkpoint (rank 0 only; weights are identical across ranks after each all-reduce).
     if main:
         save_checkpoint(model, config, step=step, path=ckpt_path,
-                        extra={"init_losses": init_losses, "last_losses": last_losses})
+                        extra={"init_losses": init_losses, "last_losses": last_losses,
+                               "optimizer_state_dict": optimizer.state_dict(),
+                               "best_auc": best_auc, "best_val_ce": best_val_ce})
         _p(f"[train_mlm] final checkpoint: {ckpt_path} ({ckpt_path.stat().st_size/1e6:.2f} MB)")
     _p(f"[train_mlm] step 0 losses: {init_losses}")
     _p(f"[train_mlm] last losses:   {last_losses}")
@@ -654,6 +674,9 @@ def cli():
     ap.add_argument("--val-mask-seed", type=int, default=7,
                     help="Fixed seed for deterministic val masking (kept constant across steps).")
     ap.add_argument("--seed", type=int, default=42)
+    ap.add_argument("--resume", type=str, default="",
+                    help="Path to a checkpoint (e.g. latest.pt) to resume from: restores "
+                         "model weights, optimizer momentum, step counter, and best-metric trackers.")
     return ap.parse_args()
 
 

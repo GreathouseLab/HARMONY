@@ -52,7 +52,9 @@ MASK_SEED = 7           # match training (val_mask_seed)
 def load_model(ckpt_path: Path, device: str):
     import torch
     import train_mlm as T
-    ckpt = torch.load(ckpt_path, map_location=device)
+    # weights_only=False: the checkpoint stores a GPTConfig object (torch>=2.6 blocks custom
+    # globals under the new weights_only=True default). Safe here — it's our own checkpoint.
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     config = ckpt["model_config"]                       # saved GPTConfig
     model = T.GPT_MLM(config).to(device)
     state = ckpt.get("model_state_dict", ckpt)
@@ -96,7 +98,15 @@ def read_bodies(path: Path, n_samples: int) -> list[str]:
 
 
 def dna_only(body: str) -> str:
-    return "".join(t for t in body.split() if t in BASES)
+    """Concatenate the DNA of a read body, whether bases are space-separated single
+    letters ("A C G T") or continuous strings ("ACGT"). Drops special tokens like
+    <PAIRED_END> and any non-ACGT characters; case-insensitive."""
+    out = []
+    for tok in body.split():
+        if tok.startswith("<"):          # special token, e.g. <PAIRED_END>
+            continue
+        out.append("".join(c for c in tok.upper() if c in BASES))
+    return "".join(out)
 
 
 def diversity(bodies: list[str], k: int = 5) -> dict:
