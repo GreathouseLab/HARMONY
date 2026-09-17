@@ -37,7 +37,8 @@ from paired_data_loader import PairedDataLoader
 from contrastive_loss import infonce_with_sample_ids
 from device_utils import (get_device, empty_cache, describe,
                            init_distributed, is_main, dist_active,
-                           broadcast_parameters, allreduce_gradients, barrier, cleanup_distributed)
+                           broadcast_parameters, allreduce_gradients, barrier, cleanup_distributed,
+                           broadcast_int)
 
 
 PROJECT_DIR = Path(__file__).parent
@@ -413,14 +414,22 @@ def train(args):
     tk = Tokenizer.from_directory()
     _p(f"[train_mlm] tokenizer vocab_size={tk.get_vocab_size()}; extending to {EXTENDED_VOCAB} (added [MASK]={MASK_ID})")
 
+    # ---- seq-len curriculum config (Nick: let the context grow, scheduled so it's never too hard) ----
+    seq_start = args.seq_len
+    seq_max = args.seq_len_max if (args.seq_len_max and args.seq_len_max > args.seq_len) else args.seq_len
+    curriculum_on = seq_max > seq_start
+    model_seq_len = seq_max                    # build the model at the CEILING so rotary covers every stage
+    cur_T = seq_start                          # current context length (grows ×2 on val-CE plateau)
+
     loader = PairedDataLoader(
         txt_path=args.train_txt,
         tokenizer=tk,
         samples_per_batch=args.samples_per_batch,
         reads_per_sample=args.reads_per_sample,
         n_reads_cap_per_sample=args.reads_cap,
-        seq_len=args.seq_len,
+        seq_len=seq_start,
         seed=args.seed + rank,   # each rank draws a DIFFERENT data shard (the point of data parallelism)
+        max_read_len=model_seq_len,
     )
 
     device_batch_size = args.samples_per_batch * args.reads_per_sample
@@ -428,7 +437,7 @@ def train(args):
     # loader reads; deterministic; ~700 reads). Lets us watch TRAIN top-1 vs VAL top-1.
     train_eval_lists = [ids for s in sorted(loader.samples)[:14] for ids in loader.samples[s][:50]]
     _p(f"[train_mlm] train-eval memorization set: {len(train_eval_lists)} reads")
-    model, config = build_model(device, depth=args.depth, aspect_ratio=args.aspect_ratio, seq_len=args.seq_len)
+    model, config = build_model(device, depth=args.depth, aspect_ratio=args.aspect_ratio, seq_len=model_seq_len)
     model.mlm_softcap = args.mlm_softcap
 
     # ---- resume: restore weights BEFORE broadcast so every rank starts identical ----
@@ -439,6 +448,10 @@ def train(args):
         model.load_state_dict(resume_ckpt["model_state_dict"], strict=True)
         start_step = int(resume_ckpt.get("step", -1)) + 1
         _p(f"[train_mlm] RESUME from {args.resume}: continuing at step {start_step}")
+        if curriculum_on:
+            cur_T = int(resume_ckpt.get("cur_seq_len", cur_T))
+            loader.set_seq_len(cur_T)
+            _p(f"[train_mlm] RESUME curriculum: context length restored to {cur_T}")
 
     broadcast_parameters(model)   # DDP: all ranks start from rank-0 weights (no-op if single-device)
     n_params = sum(p.numel() for p in model.parameters())
@@ -492,6 +505,13 @@ def train(args):
     max_seconds = args.max_runtime_hours * 3600
     init_losses = None
     last_losses = None
+
+    # seq-len curriculum stage trackers (rank 0 decides on val plateau; cur_T is broadcast to all ranks)
+    stage_best_ce = float("inf")
+    stage_stale = 0
+    if curriculum_on:
+        _p(f"[curriculum] ON: start={seq_start} -> max={seq_max}, grow x2 on val-CE plateau "
+           f"(patience={args.seq_len_patience} evals, min_delta={args.seq_len_min_delta} nats). cur_T={cur_T}")
 
     # Only rank 0 writes the per-step jsonl; other ranks discard theirs (avoids a write race).
     with open(log_path if main else os.devnull, "w") as log_f:
@@ -614,7 +634,8 @@ def train(args):
                                 extra={"probe1_auc": auc, "wall_clock_s": wall,
                                        "val_msk_top1": vm["top1"], "val_msk_ce": vm["ce_nats"],
                                        "optimizer_state_dict": optimizer.state_dict(),
-                                       "best_auc": best_auc, "best_val_ce": best_val_ce})
+                                       "best_auc": best_auc, "best_val_ce": best_val_ce,
+                                       "cur_seq_len": cur_T})
                 if auc > best_auc:
                     best_auc = auc
                     best_step = step
@@ -632,15 +653,31 @@ def train(args):
                                            "is_best_val": True})
                     print(f"[mvt] NEW BEST VAL-MLM CE {vm['ce_nats']:.4f} (top1={vm['top1']:.4f}) "
                           f"at step {step} -> {best_val_path}")
+                # seq-len curriculum: grow the window when val CE stops improving at this stage
+                if curriculum_on and cur_T < seq_max:
+                    if vm["ce_nats"] == vm["ce_nats"] and vm["ce_nats"] < stage_best_ce - args.seq_len_min_delta:
+                        stage_best_ce = vm["ce_nats"]; stage_stale = 0
+                    else:
+                        stage_stale += 1
+                    if stage_stale >= args.seq_len_patience:
+                        cur_T = min(seq_max, cur_T * 2)
+                        stage_best_ce = float("inf"); stage_stale = 0
+                        print(f"[curriculum] val CE plateaued -> seq_len grows to {cur_T} at step {step}")
                 model.train()
               barrier()   # DDP: resync all ranks after rank-0 eval (keeps the all-reduce in lockstep)
+              # curriculum: rank 0 may have grown cur_T during eval — sync to every rank and apply
+              if curriculum_on:
+                  cur_T = broadcast_int(cur_T, device, src=0)
+                  if loader.T != cur_T:
+                      loader.set_seq_len(cur_T)
 
     # Final checkpoint (rank 0 only; weights are identical across ranks after each all-reduce).
     if main:
         save_checkpoint(model, config, step=step, path=ckpt_path,
                         extra={"init_losses": init_losses, "last_losses": last_losses,
                                "optimizer_state_dict": optimizer.state_dict(),
-                               "best_auc": best_auc, "best_val_ce": best_val_ce})
+                               "best_auc": best_auc, "best_val_ce": best_val_ce,
+                               "cur_seq_len": cur_T})
         _p(f"[train_mlm] final checkpoint: {ckpt_path} ({ckpt_path.stat().st_size/1e6:.2f} MB)")
     _p(f"[train_mlm] step 0 losses: {init_losses}")
     _p(f"[train_mlm] last losses:   {last_losses}")
@@ -677,6 +714,15 @@ def cli():
     ap.add_argument("--resume", type=str, default="",
                     help="Path to a checkpoint (e.g. latest.pt) to resume from: restores "
                          "model weights, optimizer momentum, step counter, and best-metric trackers.")
+    ap.add_argument("--seq-len-max", type=int, default=0,
+                    help="Ceiling for the seq-len CURRICULUM. If > --seq-len, the model is built at "
+                         "this length, training starts at --seq-len, and the context window doubles "
+                         "each time val CE plateaus, up to this ceiling (rows pack more same-sample "
+                         "reads as it grows). 0 = curriculum off (fixed --seq-len).")
+    ap.add_argument("--seq-len-patience", type=int, default=3,
+                    help="Curriculum: consecutive evals with no val-CE improvement before the window grows.")
+    ap.add_argument("--seq-len-min-delta", type=float, default=0.01,
+                    help="Curriculum: minimum val-CE improvement (nats) that counts as progress.")
     return ap.parse_args()
 
 

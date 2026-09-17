@@ -206,6 +206,17 @@ def broadcast_parameters(model, src: int = 0) -> None:
             dist.broadcast(p.data, src=src)
 
 
+def broadcast_int(value: int, device, src: int = 0) -> int:
+    """Broadcast a python int from `src` to every rank (the seq-len curriculum uses this to keep
+    all ranks' context length in lockstep after rank 0 decides to grow it). No-op if single-process."""
+    if not _DIST["active"]:
+        return int(value)
+    import torch.distributed as dist
+    t = torch.tensor([int(value)], device=device)
+    dist.broadcast(t, src=src)
+    return int(t.item())
+
+
 def allreduce_gradients(model) -> None:
     """Average gradients across ranks in place (the core of manual data parallelism). No-op if single."""
     if not _DIST["active"]:

@@ -31,12 +31,16 @@ class PairedDataLoader:
     def __init__(self, txt_path: Path | str, tokenizer: Tokenizer,
                  samples_per_batch: int = 4, reads_per_sample: int = 8,
                  n_reads_cap_per_sample: int = 200, seq_len: int = SEQ_LEN_DEFAULT,
-                 seed: int = 42):
+                 seed: int = 42, max_read_len: int | None = None):
         self.txt_path = Path(txt_path)
         self.tokenizer = tokenizer
         self.K = samples_per_batch
         self.M = reads_per_sample
-        self.T = seq_len
+        self.T = seq_len                       # CURRENT context length (mutable via set_seq_len)
+        # Per-read drop threshold. For the seq-len curriculum this is the CEILING (keep every read
+        # that fits the largest window we will ever use), NOT the current T — so growing T later
+        # doesn't require re-tokenizing. Defaults to seq_len, so non-curriculum runs are unchanged.
+        self.max_read_len = int(max_read_len) if max_read_len else seq_len
         self.rng = random.Random(seed)
         self.pad_id = tokenizer.enc.encode_single_token("<|bos|>")
 
@@ -51,7 +55,7 @@ class PairedDataLoader:
             for body in bodies:
                 text = f"<READ_START> {body} <READ_END>"
                 ids = tokenizer.encode(text)
-                if len(ids) > self.T:
+                if len(ids) > self.max_read_len:
                     n_dropped_too_long += 1
                     continue
                 toks.append(ids)
@@ -68,8 +72,9 @@ class PairedDataLoader:
         eff_B = self.K * self.M
         print(f"[paired_loader] path: {self.txt_path}")
         print(f"[paired_loader] parsed {len(self.samples)} samples, {n_total_reads} reads "
-              f"(dropped {n_dropped_too_long} reads > seq_len={self.T} tokens)")
-        print(f"[paired_loader] batch recipe: K={self.K} samples × M={self.M} reads = batch size {eff_B}")
+              f"(dropped {n_dropped_too_long} reads > max_read_len={self.max_read_len} tokens)")
+        print(f"[paired_loader] batch recipe: K={self.K} samples × M={self.M} rows = batch size {eff_B}"
+              f"; context length T={self.T} (rows pack multiple same-sample reads to fill T)")
         print(f"[paired_loader] pad token id={self.pad_id} (<|bos|>) — never a mask candidate")
 
     def __iter__(self):
@@ -78,27 +83,52 @@ class PairedDataLoader:
     def __next__(self):
         return self._build_batch()
 
+    def set_seq_len(self, T: int):
+        """Grow (or shrink) the current context length. The seq-len curriculum calls this on a
+        val plateau; each row then packs more same-sample reads to fill the wider window."""
+        self.T = int(T)
+
+    def _pack_row(self, reads, T):
+        """Fill a T-token row by concatenating randomly-drawn reads from ONE sample, in order,
+        until the next read would overflow. Each read keeps its <READ_START>/<READ_END> boundary,
+        so once T exceeds a single read the model sees within-sample, cross-read structure. At
+        T≈64 this yields ~one read per row — matching the pre-curriculum behavior."""
+        order = self.rng.sample(reads, len(reads)) if len(reads) > 1 else list(reads)
+        row, i = [], 0
+        while len(row) < T:
+            if i >= len(order):                        # pool exhausted; reshuffle to keep filling
+                order = self.rng.sample(reads, len(reads)) if len(reads) > 1 else list(reads)
+                i = 0
+            r = order[i]; i += 1
+            if not row:
+                row.extend(r[:T])                      # first read: truncate only if it alone > T
+            elif len(row) + len(r) <= T:
+                row.extend(r)
+            else:
+                break                                  # next read won't fit; pad the remainder
+        return row[:T]
+
     def _build_batch(self):
         # Pick K samples preferring those with >=M reads; fall back to any with >=2.
         with_enough = [s for s in self.sample_ids_list if len(self.samples[s]) >= self.M]
         pool = with_enough if len(with_enough) >= self.K else [s for s in self.sample_ids_list if len(self.samples[s]) >= 2]
         chosen = self.rng.sample(pool, self.K)
 
-        batch_ids, batch_lens, batch_sample_ids = [], [], []
-        for s in chosen:
-            pool_reads = self.samples[s]
-            n_take = min(self.M, len(pool_reads))
-            picked = self.rng.sample(pool_reads, n_take)
-            for ids in picked:
-                batch_ids.append(ids)
-                batch_lens.append(len(ids))
+        T = self.T
+        batch_rows, batch_lens, batch_sample_ids = [], [], []
+        for s in chosen:                               # K samples × M rows; each row packs reads to T
+            reads = self.samples[s]
+            for _ in range(self.M):
+                row = self._pack_row(reads, T)
+                batch_rows.append(row)
+                batch_lens.append(len(row))
                 batch_sample_ids.append(s)
 
-        B = len(batch_ids)
-        token_ids = torch.full((B, self.T), self.pad_id, dtype=torch.long)
+        B = len(batch_rows)
+        token_ids = torch.full((B, T), self.pad_id, dtype=torch.long)
+        for i, row in enumerate(batch_rows):
+            token_ids[i, :len(row)] = torch.tensor(row, dtype=torch.long)
         attn_len = torch.tensor(batch_lens, dtype=torch.long)
-        for i, ids in enumerate(batch_ids):
-            token_ids[i, :len(ids)] = torch.tensor(ids, dtype=torch.long)
         sample_ids = torch.tensor(batch_sample_ids, dtype=torch.long)
 
         assert sample_ids.unique().numel() >= 2, "batch lacks >=2 distinct samples"
