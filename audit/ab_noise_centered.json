@@ -1,0 +1,24 @@
+[
+  {
+    "checkpoint": "experiments/ab_smallcap/checkpoint.pt",
+    "step": 11999,
+    "centered_between_read_floor": -0.002564875998103701,
+    "centered": {
+      "0.005": 0.9698364602029323,
+      "0.01": 0.9400973616540432,
+      "0.05": 0.7430737533047795
+    },
+    "name": "SMALL-CAP (cap 100)"
+  },
+  {
+    "checkpoint": "experiments/ab_largecap/checkpoint.pt",
+    "step": 11999,
+    "centered_between_read_floor": 0.0063679146471587785,
+    "centered": {
+      "0.005": 0.9812081645429135,
+      "0.01": 0.9616280945017934,
+      "0.05": 0.8293981699831784
+    },
+    "name": "LARGE-CAP (cap 1000)"
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "checkpoint": "experiments/mlm_bigcohort_d6/checkpoint.pt",
+  "evaluation1": {
+    "uncentered": {
+      "auc": 0.524039189453374,
+      "n_within_pairs": 17150,
+      "n_between_pairs": 17150,
+      "mean_within_cos": 0.9861617445980495,
+      "mean_between_cos": 0.9853900466750731,
+      "std_within_cos": 0.012640667803512397,
+      "std_between_cos": 0.012792148550724743,
+      "delta_mean": 0.0007716979229763776
+    },
+    "centered": {
+      "auc": 0.5328506217647409,
+      "n_within_pairs": 17150,
+      "n_between_pairs": 17150,
+      "mean_within_cos": 0.05296550406880253,
+      "mean_between_cos": -0.005746822619006994,
+      "std_within_cos": 0.5175886175572907,
+      "std_between_cos": 0.514235931372522,
+      "delta_mean": 0.05871232668780953
+    }
+  },
+  "evaluation4_floor": {
+    "uncentered": 0.9846519852901722,
+    "centered": 0.02425579570496718
+  }
+}

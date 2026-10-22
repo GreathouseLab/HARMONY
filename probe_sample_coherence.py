@@ -159,7 +159,8 @@ def embed_reads(model, tokenizer, reads: list[str], device, special_ids: set[int
 # ============================================================
 
 def compute_sample_coherence(embeddings: np.ndarray, sample_labels: np.ndarray,
-                             max_pairs_per_class: int = 50_000, seed: int = 42):
+                             max_pairs_per_class: int = 50_000, seed: int = 42,
+                             center: bool = False):
     """Compute ROC-AUC distinguishing within-sample from between-sample cosine sims.
 
     embeddings: (N, n_embd)
@@ -169,6 +170,12 @@ def compute_sample_coherence(embeddings: np.ndarray, sample_labels: np.ndarray,
     delta_mean. Returns NaN auc with an `error` field if there aren't enough pairs.
     """
     rng = np.random.RandomState(seed)
+
+    # center=True subtracts the mean embedding before normalising. Transformer embeddings
+    # are anisotropic (they occupy a narrow cone), so raw cosine is dominated by the shared
+    # mean direction rather than by content. Default False = original behaviour, unchanged.
+    if center:
+        embeddings = embeddings - embeddings.mean(axis=0, keepdims=True)
 
     norms = np.linalg.norm(embeddings, axis=1, keepdims=True).clip(min=1e-8)
     emb_n = embeddings / norms
@@ -239,7 +246,8 @@ def compute_sample_coherence(embeddings: np.ndarray, sample_labels: np.ndarray,
 def run_probe1(checkpoint_path: Path, val_path: Path, output_path: Path,
                n_reads_per_sample: int = 100, seed: int = 42,
                device: str | torch.device | None = None,
-               model=None, tokenizer=None, ckpt_meta: dict | None = None):
+               model=None, tokenizer=None, ckpt_meta: dict | None = None,
+               center: bool = False):
     """Run Probe 1 on a single checkpoint, write JSON results.
 
     If `model`/`tokenizer` are passed in, the loader is skipped (used by the
@@ -308,7 +316,7 @@ def run_probe1(checkpoint_path: Path, val_path: Path, output_path: Path,
     print(f"  Embedded {len(reads)} reads in {time.time()-t0:.1f}s; shape={embeddings.shape}")
 
     t0 = time.time()
-    result = compute_sample_coherence(embeddings, labels_arr, seed=seed)
+    result = compute_sample_coherence(embeddings, labels_arr, seed=seed, center=center)
     print(f"  Coherence computed in {time.time()-t0:.1f}s")
     if not np.isnan(result["auc"]):
         print(f"    AUC = {result['auc']:.4f}")
@@ -327,6 +335,7 @@ def run_probe1(checkpoint_path: Path, val_path: Path, output_path: Path,
         "n_reads_total": int(n_total_reads),
         "seed": seed,
         "device": str(device_t),
+        "center": bool(center),
         **result,
     }
 
@@ -347,6 +356,9 @@ if __name__ == "__main__":
     ap.add_argument("--n-reads-per-sample", type=int, default=100)
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--device", default="mps")
+    ap.add_argument("--center", action="store_true",
+                    help="subtract the mean embedding before normalising (anisotropy correction); "
+                         "off by default so existing numbers are reproducible")
     args = ap.parse_args()
 
     run_probe1(
@@ -356,4 +368,5 @@ if __name__ == "__main__":
         n_reads_per_sample=args.n_reads_per_sample,
         seed=args.seed,
         device=args.device,
+        center=args.center,
     )

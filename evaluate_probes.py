@@ -108,6 +108,16 @@ def embed_read(model: GPT, tokenizer: Tokenizer, dna: str, device: torch.device,
     return pooled.cpu().numpy()
 
 
+def center_embeddings(X: np.ndarray) -> np.ndarray:
+    """Subtract the population mean embedding (anisotropy correction).
+
+    Transformer embeddings occupy a narrow cone, so raw cosine is dominated by the shared
+    mean direction. Callers opt in; nothing here changes default behaviour.
+    """
+    X = np.asarray(X, dtype=np.float64)
+    return X - X.mean(axis=0, keepdims=True)
+
+
 def cosine(a: np.ndarray, b: np.ndarray) -> float:
     na = float(np.linalg.norm(a))
     nb = float(np.linalg.norm(b))

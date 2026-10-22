@@ -437,6 +437,23 @@ def train(args):
     # loader reads; deterministic; ~700 reads). Lets us watch TRAIN top-1 vs VAL top-1.
     train_eval_lists = [ids for s in sorted(loader.samples)[:14] for ids in loader.samples[s][:50]]
     _p(f"[train_mlm] train-eval memorization set: {len(train_eval_lists)} reads")
+
+    # ---- data-budget accounting (logged at every eval; no per-step cost) ----
+    # Added 2026-10-22: every run must report tokens-seen and passes-over-distinct-reads,
+    # so "more steps" can never again be proposed without its repetition figure.
+    n_distinct_reads = sum(len(v) for v in loader.samples.values())
+    global_rows_per_step = world_size * args.samples_per_batch * args.reads_per_sample
+    TOKENS_PER_READ = 48.27   # measured, audit/TOKENIZER_SEQLEN_AUDIT_2026-10-22.md
+
+    def data_budget(step_i, cur_T_i):
+        """(reads_seen, tokens_seen, passes) at this step. reads_per_row grows with context."""
+        reads_per_row = max(1, int(cur_T_i // TOKENS_PER_READ))
+        reads_seen = step_i * global_rows_per_step * reads_per_row
+        return reads_seen, reads_seen * TOKENS_PER_READ, reads_seen / max(1, n_distinct_reads)
+
+    _p(f"[train_mlm] data budget: {n_distinct_reads:,} distinct reads | "
+       f"{global_rows_per_step} rows/step | 4-pass budget = "
+       f"{4 * n_distinct_reads / max(1, global_rows_per_step):,.0f} steps at T={seq_start}")
     model, config = build_model(device, depth=args.depth, aspect_ratio=args.aspect_ratio, seq_len=model_seq_len)
     model.mlm_softcap = args.mlm_softcap
 
@@ -498,7 +515,8 @@ def train(args):
             # val_msk_* columns appended at the END so index-based readers of the
             # original 5 columns (step,wall,L_MLM,L_contrastive,probe1_auc) still work.
             f.write("step,wall_clock_s,L_MLM,L_contrastive,probe1_auc,"
-                    "val_msk_top1,val_msk_top5,val_msk_ce,train_msk_top1,train_msk_ce\n")
+                    "val_msk_top1,val_msk_top5,val_msk_ce,train_msk_top1,train_msk_ce,"
+                    "reads_seen,tokens_seen,passes\n")
         _p(f"[train_mlm] periodic Probe 1 + VAL-MLM every {eval_every} steps -> {traj_path}")
 
     t0 = time.time()
@@ -621,14 +639,19 @@ def train(args):
                                   n_per_sample=val_n_per_sample, mask_seed=val_mask_seed)
                 tm = eval_train_mlm(model, train_eval_lists, device, mask_seed=val_mask_seed)
                 wall = time.time() - t0
+                _reads_seen, _tokens_seen, _passes = data_budget(step, cur_T)
                 with open(traj_path, "a") as f:
                     f.write(f"{step},{wall:.1f},{mlm_loss.item():.6f},{con_loss.item():.6f},{auc:.6f},"
                             f"{vm['top1']:.6f},{vm['top5']:.6f},{vm['ce_nats']:.6f},"
-                            f"{tm['top1']:.6f},{tm['ce_nats']:.6f}\n")
+                            f"{tm['top1']:.6f},{tm['ce_nats']:.6f},"
+                            f"{_reads_seen},{_tokens_seen:.0f},{_passes:.4f}\n")
                 print(f"[mvt] step {step} | wall {wall:.0f}s | probe1_auc={auc:.4f} | "
                       f"val_msk top1={vm['top1']:.4f} CE={vm['ce_nats']:.4f} | "
                       f"TRAIN_msk top1={tm['top1']:.4f} CE={tm['ce_nats']:.4f} "
                       f"| eval_dt={time.time()-t_eval:.1f}s")
+                print(f"[data] step {step} | tokens_seen={_tokens_seen:,.0f} | "
+                      f"passes={_passes:.2f} over {n_distinct_reads:,} distinct reads"
+                      + ("  *** PAST 4-PASS BUDGET ***" if _passes > 4 else ""))
                 # latest + best (probe-AUC) checkpoints — unchanged
                 save_checkpoint(model, config, step=step, path=latest_path,
                                 extra={"probe1_auc": auc, "wall_clock_s": wall,
